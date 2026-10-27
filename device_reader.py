@@ -1,20 +1,9 @@
 #!/usr/bin/env python3
-"""Connect the user's PyModbus temperature example to their HTML dashboard.
-
-Each /api/telemetry request performs a fresh Modbus FC04 read. First try the
-26-register map; if unavailable, read only register 30001 (temperature).
-No fabricated measurements, no browser access to raw TCP ports.
-"""
-import argparse
+"""Read and decode MXCHIP Modbus registers. Run server.py for the dashboard."""
 import datetime as dt
-import json
 import logging
 import threading
-from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
-from pathlib import Path
-from urllib.parse import urlparse
 
-HERE = Path(__file__).resolve().parent
 REG_COUNT = 26
 REGS = [
     ("Temperature", "°C", "signed", 0.1, 0),
@@ -55,20 +44,14 @@ HEALTH_NAMES = [
 
 
 # Many MXCHIP builds handle only one TCP client at a time.
-# This lock serializes simultaneous browser refreshes.
+# Share the lock if another local consumer reads through this module.
 MODBUS_LOCK = threading.Lock()
 
 
 def read_fc04(ip, port, unit=1, timeout=3.0, count=26):
-    """The SAME steps as the uploaded simple modbus.py, just configurable.
-
-    1. Make a ModbusTcpClient (IP, port 502).
-    2. Connect to MXCHIP.
-    3. Read FC04 input registers starting at offset 0.
-    4. Return raw register values; always close the socket.
-    """
+    """Read FC04 at offset zero and always close the device connection."""
     from pymodbus.client import ModbusTcpClient
-    client = ModbusTcpClient(ip, port=port, timeout=timeout)
+    client = ModbusTcpClient(ip, port=port, timeout=timeout, retries=0)
     try:
         if not client.connect():
             raise ConnectionError(f"Could not connect to MXCHIP at {ip}:{port}")
@@ -92,7 +75,7 @@ def decode_temperature_only(raw, ip, port, unit):
     valid = reg != 0x8000
     signed = reg - 65536 if reg >= 32768 else reg
     temp = signed / 10 if valid else None
-    timestamp = dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z")
+    timestamp = dt.datetime.now(dt.timezone.utc).isoformat(timespec="milliseconds").replace("+00:00", "Z")
     return {
         "online": True,
         "mode": "temperature-only",
@@ -157,16 +140,22 @@ def read_latest(ip, port, unit, timeout):
 def decode(raw, ip, port):
     if len(raw) != REG_COUNT:
         raise ValueError("Expected exactly 26 input registers")
-    mask = raw[19]
+    if any(type(value) is not int or not 0 <= value <= 65535 for value in raw):
+        raise ValueError("Registers must be unsigned 16-bit integers")
+    mask = None if raw[19] == 0xFFFF else raw[19]
     registers = []
     for i, (name, unit, number_format, scale, valid_bit) in enumerate(REGS):
         integer = raw[i]
         signed_value = integer - 65536 if (integer & 0x8000) else integer
         invalid_sentinel = 0x8000 if number_format == "signed" else 0xFFFF
         valid = integer != invalid_sentinel
-        if valid_bit is not None and not (mask & (1 << valid_bit)):
+        if valid_bit is not None and (mask is None or not (mask & (1 << valid_bit))):
+            valid = False
+        if i in (5, 7, 21, 22) and integer not in (0, 1):
             valid = False
         value = (signed_value if number_format == "signed" else integer) * scale if valid else None
+        if isinstance(value, float):
+            value = round(value, 6)
         if isinstance(value, float) and value.is_integer():
             value = int(value)
         registers.append({
@@ -182,9 +171,12 @@ def decode(raw, ip, port):
     def v(i):
         return registers[i]["value"]
 
+    def boolean(i):
+        return None if v(i) is None else v(i) == 1
+
     return {
         "online": True,
-        "observed_at": dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z"),
+        "observed_at": dt.datetime.now(dt.timezone.utc).isoformat(timespec="milliseconds").replace("+00:00", "Z"),
         "device": {"ip": ip, "port": port, "unit_id": 1, "protocol": "Modbus TCP / FC04"},
         "environment": {
             "temperature_c": v(0),
@@ -199,20 +191,20 @@ def decode(raw, ip, port):
             "steps": v(18),
         },
         "status": {
-            "wifi_connected": v(7) == 1,
+            "wifi_connected": boolean(7),
             "wifi_rssi_dbm": v(3),
-            "alarm_on": v(5) == 1,
+            "alarm_on": boolean(5),
             "uptime_seconds_16bit": v(4),
             "successful_reads_16bit": v(6),
             "sample_sequence_16bit": v(20),
-            "button_a_down": v(21) == 1,
-            "button_b_down": v(22) == 1,
+            "button_a_down": boolean(21),
+            "button_b_down": boolean(22),
             "sensor_error_count_16bit": v(23),
             "sample_age_seconds": v(24),
             "validity_mask": mask,
             "register_map_version": v(25),
             "sensor_health": [
-                {"id": key, "name": label, "ok": bool(mask & (1 << bit))}
+                {"id": key, "name": label, "ok": None if mask is None else bool(mask & (1 << bit))}
                 for bit, (key, label) in enumerate(HEALTH_NAMES)
             ],
         },
@@ -220,73 +212,6 @@ def decode(raw, ip, port):
     }
 
 
-def make_handler(ip, port, unit, timeout):
-    class Handler(BaseHTTPRequestHandler):
-        def reply_json(self, status, payload):
-            body = json.dumps(payload, allow_nan=False).encode("utf-8")
-            self.send_response(status)
-            self.send_header("Content-Type", "application/json; charset=utf-8")
-            self.send_header("Cache-Control", "no-store")
-            self.send_header("Content-Length", str(len(body)))
-            self.send_header("X-Content-Type-Options", "nosniff")
-            self.end_headers()
-            self.wfile.write(body)
-
-        def do_GET(self):
-            path = urlparse(self.path).path
-            if path in ("/", "/index.html"):
-                content = (HERE / "index.html").read_bytes()
-                self.send_response(200)
-                self.send_header("Content-Type", "text/html; charset=utf-8")
-                self.send_header("Cache-Control", "no-store")
-                self.send_header("Content-Length", str(len(content)))
-                self.send_header("X-Content-Type-Options", "nosniff")
-                self.end_headers()
-                self.wfile.write(content)
-                return
-            if path == "/api/info":
-                self.reply_json(200, {"device_ip": ip, "device_port": port, "unit_id": unit, "register_count": REG_COUNT})
-                return
-            if path == "/api/telemetry":
-                try:
-                    data = read_latest(ip, port, unit, timeout)
-                    self.reply_json(200, data)
-                except Exception as exc:
-                    logging.warning("Modbus request failed: %s", exc)
-                    self.reply_json(503, {"online": False, "error": str(exc), "device": {"ip": ip, "port": port}})
-                return
-            self.reply_json(404, {"error": "Not found"})
-
-        def log_message(self, fmt, *args):
-            logging.info("%s - %s", self.address_string(), fmt % args)
-
-    return Handler
-
-
-def main():
-    parser = argparse.ArgumentParser(description="MXCHIP local Modbus TCP to web dashboard bridge")
-    parser.add_argument("--device", default="192.168.1.26", help="MXCHIP IP address (default: 192.168.1.26)")
-    parser.add_argument("--device-port", type=int, default=502, help="Modbus TCP port (default: 502)")
-    parser.add_argument("--unit", type=int, default=1, help="Modbus unit identifier 0-255 (default: 1)")
-    parser.add_argument("--web-port", type=int, default=8080, help="Local dashboard HTTP port (default: 8080)")
-    parser.add_argument("--timeout", type=float, default=3, help="Device timeout in seconds (default: 3)")
-    args = parser.parse_args()
-    if not (0 <= args.unit <= 255 and 0 < args.device_port <= 65535 and 0 < args.web_port <= 65535 and 0 < args.timeout <= 30):
-        parser.error("Invalid unit, port or timeout")
-    logging.basicConfig(level=logging.WARNING, format="%(levelname)s: %(message)s")
-    server = ThreadingHTTPServer(("127.0.0.1", args.web_port), make_handler(args.device, args.device_port, args.unit, args.timeout))
-    server.daemon_threads = True
-    print("MXCHIP MODBUS WEB CLIENT - press Refresh in browser for a fresh read")
-    print(f"  Target Modbus server: {args.device}:{args.device_port}, unit={args.unit}")
-    print(f"  Dashboard: http://127.0.0.1:{args.web_port}")
-    print("  Press Ctrl+C to stop. Read-only, bound to localhost.")
-    try:
-        server.serve_forever()
-    except KeyboardInterrupt:
-        pass
-    finally:
-        server.server_close()
-
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit("Run python server.py (or python server.py --demo) to start the dashboard.")

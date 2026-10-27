@@ -1,0 +1,64 @@
+{
+  "id": "atrium-building",
+  "name": "Atrium building / 01",
+  "code": "AB-01",
+  "category": "Furnished office building",
+  "description": "Your supplied three-floor office layouts, furnished inside the existing glazed building: ground-floor reception and public rooms, team offices on level 01, and leadership spaces on level 02. Plant rooms, risers and service routes are reserved for the next stage.",
+  "stage": "02 \u00b7 Offices + furniture",
+  "preview": "/projects/atrium-building/preview.svg",
+  "model": {
+    "kind": "atrium-building",
+    "floors": 3,
+    "floor_height_m": 4.2,
+    "width_m": 40,
+    "depth_m": 24,
+    "dimensions_verified": false,
+    "interior_revision": "A",
+    "layout_source": "Supplied schematic office concept plans"
+  },
+  "requirements": [
+    {
+      "name": "Three furnished floors within the 40 \u00d7 24 m concept footprint",
+      "status": "established"
+    },
+    {
+      "name": "Office boundaries, room IDs, circulation and furniture from the supplied plans",
+      "status": "established"
+    },
+    {
+      "name": "Plant rooms, wet/dry/HVAC risers and corridor service zones",
+      "status": "reserved; equipment not installed"
+    },
+    {
+      "name": "MEP networks, fire protection, sizing and original-building coordination",
+      "status": "next stage"
+    }
+  ],
+  "iot": [],
+  "phases": [
+    {
+      "name": "Building architecture",
+      "status": "established"
+    },
+    {
+      "name": "Offices and furniture",
+      "status": "current"
+    },
+    {
+      "name": "HVAC and ventilation",
+      "status": "planned"
+    },
+    {
+      "name": "Fire detection and alarm",
+      "status": "planned"
+    },
+    {
+      "name": "Pump room and sprinkler network",
+      "status": "planned"
+    },
+    {
+      "name": "IoT devices and BMS integration",
+      "status": "planned"
+    }
+  ]
+}

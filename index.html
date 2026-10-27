@@ -1,78 +1,693 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta name="theme-color" content="#07111c" />
-  <title>aura — Room Digital Twin / MXCHIP</title>
-  <link rel="stylesheet" href="/style.css" />
-</head>
-<body>
-  <div class="shell">
-    <header class="topbar">
-      <div class="identity">
-        <div class="brand-symbol" aria-hidden="true"><svg viewBox="0 0 40 40" width="30"><path d="M5 27 19 6l7 11 9-8M5 27h30M14 27l5-8 5 8" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
-        <div class="product"><strong>aura<span class="brand-dot">.</span></strong><small>DIGITAL TWIN STUDIO</small></div>
-        <span class="brand-separator" aria-hidden="true"></span>
-        <div class="trail">WORKSPACE <span>/</span> BUILDINGS <span>/</span> <b>MEETING ROOM 01</b></div>
-      </div>
-      <div class="top-actions">
-        <span class="connection-status" id="connState"><i class="status-dot"></i><span id="connLabel">CONNECTING</span></span>
-        <span class="header-clock" id="clock">--:--:--</span>
-        <button id="helpBtn" class="icon-button" type="button" title="How to use the digital twin">?</button>
-      </div>
-    </header>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#07111c" />
+    <title>aura — Project Studio</title>
+    <link rel="stylesheet" href="/style.css" />
+    <script type="importmap">
+      { "imports": { "three": "/vendor/three.module.js" } }
+    </script>
+  </head>
+  <body>
+    <div class="shell">
+      <header class="topbar">
+        <div class="identity">
+          <div class="brand-symbol" aria-hidden="true">
+            <svg viewBox="0 0 40 40" width="30">
+              <path
+                d="M5 27 19 6l7 11 9-8M5 27h30M14 27l5-8 5 8"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2.5"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
+          </div>
+          <div class="product">
+            <strong>aura<span class="brand-dot">.</span></strong
+            ><small>DIGITAL TWIN STUDIO</small>
+          </div>
+          <span class="brand-separator" aria-hidden="true"></span>
+          <div class="trail">
+            WORKSPACE <span>/</span> BUILDINGS <span>/</span>
+            <b id="roomTrail">Projects</b>
+          </div>
+        </div>
+        <div class="top-actions">
+          <span
+            class="connection-status"
+            id="connState"
+            role="status"
+            aria-live="polite"
+            aria-atomic="true"
+            ><i class="status-dot"></i
+            ><span id="connLabel">CONNECTING</span></span
+          >
+          <span class="header-clock" id="clock">--:--:--</span>
+          <button
+            id="helpBtn"
+            class="icon-button"
+            type="button"
+            title="How to use the digital twin"
+            aria-label="How to use the digital twin"
+          >
+            ?
+          </button>
+        </div>
+      </header>
 
-    <div class="app-grid">
-      <aside class="navrail" aria-label="Twin modules">
-        <button class="nav-item active" type="button" title="3D Room" aria-label="3D Room">▧<small>TWIN</small></button>
-        <button class="nav-item" type="button" id="navSensors" title="Inspect live sensor" aria-label="Inspect live sensor">◉<small>DATA</small></button>
-        <button class="nav-item" type="button" id="navAlarm" title="Inspect alarm" aria-label="Inspect alarm">◇<small>ALARM</small></button>
-        <div class="rail-bottom">A1</div>
-      </aside>
+      <div class="app-grid">
+        <aside class="navrail" aria-label="Twin modules">
+          <button
+            id="navProjects"
+            class="nav-item"
+            type="button"
+            title="Saved projects"
+            aria-label="Projects"
+          >
+            ▦<small>PROJECTS</small>
+          </button>
+          <button
+            id="navTwin"
+            class="nav-item active"
+            type="button"
+            title="Project workspace"
+            aria-label="Project workspace"
+          >
+            ▧<small>TWIN</small>
+          </button>
+          <button
+            class="nav-item"
+            type="button"
+            id="navSensors"
+            title="Inspect live sensor"
+            aria-label="Inspect live sensor"
+          >
+            ◉<small>DATA</small>
+          </button>
+          <button
+            class="nav-item"
+            type="button"
+            id="navAlarm"
+            title="Inspect alarm"
+            aria-label="Inspect alarm"
+          >
+            ◇<small>ALARM</small>
+          </button>
+          <div class="rail-bottom">A1</div>
+        </aside>
 
-      <main class="main-content">
-        <section class="page-heading">
-          <div><p class="eyebrow">BUILDING A · LEVEL 01 <span class="slash">/</span> SPACE DIGITAL TWIN</p><h1>Meeting room <span class="subtle">/ 01</span></h1><p class="heading-desc">Live environmental intelligence from MXCHIP AZ3166 · Interactive 3D prototype</p></div>
-          <div class="heading-right"><span class="mode-chip" id="modeChip">LIVE DEVICE</span><span class="meta-chip">MODEL <b>V1.0</b></span></div>
-        </section>
-
-        <div class="workspace-grid">
-          <section class="viewer-panel" aria-label="Interactive 3D digital twin model">
-            <div class="viewer-top"><div class="viewer-title"><span class="viewer-indicator"></span><strong>Spatial view</strong><small>MR-01 · WEST WING</small></div><div class="scene-toolbar"><button type="button" id="isoBtn" class="tool-toggle active">◇ 3D VIEW</button><button type="button" id="topBtn" class="tool-toggle">⊞ TOP VIEW</button><span class="tool-sep"></span><button type="button" class="tool-icon" id="zoomIn" title="Zoom in">＋</button><button type="button" class="tool-icon" id="zoomOut" title="Zoom out">−</button><button type="button" class="tool-icon" id="resetView" title="Reset camera">↺</button></div></div>
-            <div class="scene" id="scene" role="img" aria-label="Interactive 3D meeting room showing furniture, MXCHIP sensor, fire-alarm demo beacon and monitored equipment">
-              <canvas id="roomCanvas"></canvas>
-              <div class="scene-gradient" aria-hidden="true"></div>
-              <div class="scene-corner"><span class="scene-key">LIVE DIGITAL REPLICA</span><div class="scene-caption">MEETING ROOM 01 <b>·</b> 8.0 × 6.2 m</div></div>
-              <div class="scene-mini-coord">N <span>↗</span><small>DRAG TO ORBIT · SCROLL TO ZOOM</small></div>
-              <div class="hotspot" id="markerSensor" role="button" tabindex="0" data-asset="mxchip" aria-label="Inspect MXCHIP sensor"><span class="pulse"></span><span class="marker-icon">◉</span><span class="marker-text">MXCHIP <b id="markerTemp">--°C</b></span></div>
-              <div class="hotspot alarm-marker" id="markerAlarm" role="button" tabindex="0" data-asset="alarm" aria-label="Inspect alarm device"><span class="pulse"></span><span class="marker-icon">♢</span><span class="marker-text">ALARM <b id="markerAlarmText">OFF</b></span></div>
-              <div class="hotspot muted-marker" id="markerHVAC" role="button" tabindex="0" data-asset="hvac" aria-label="Inspect HVAC display model"><span class="marker-icon">≋</span><span class="marker-text">HVAC <b>MODEL</b></span></div>
-              <div class="viewer-caption"><span><i class="teal-dot"></i> 1 LIVE SENSOR</span><span><i class="gray-dot"></i> 3 MODEL ASSETS</span><span id="sceneSync">AWAITING DEVICE</span></div>
-              <div class="scene-help" id="sceneHelp">This 3D room is an illustrative model. Only MXCHIP telemetry and its demo alarm are connected to the physical device.</div>
+        <main class="main-content">
+          <section class="page-heading">
+            <div>
+              <p class="eyebrow">
+                <span id="roomLocation">YOUR WORKSPACE</span>
+                <span class="slash">/</span> SPACE DIGITAL TWIN
+              </p>
+              <h1 id="roomName">Projects</h1>
+              <p class="heading-desc" id="projectSubtitle">
+                Live environmental intelligence from MXCHIP AZ3166 · Interactive
+                3D prototype
+              </p>
             </div>
-            <div class="asset-footer"><span class="layers-icon">▤</span><span>LAYERS</span><label><input id="toggleHotspots" type="checkbox" checked /> Sensor tags</label><label><input id="toggleRoom" type="checkbox" checked /> Room shell</label><span class="foot-note">MODEL IS SCHEMATIC · NOT TO SCALE</span></div>
+            <div class="heading-right">
+              <button
+                type="button"
+                id="openProjectsBtn"
+                class="projects-button"
+              >
+                ▦ Projects
+              </button>
+              <span class="mode-chip" id="modeChip">CONNECTING</span
+              ><span class="meta-chip" id="projectMeta">MODEL <b>V1.0</b></span>
+            </div>
           </section>
 
-          <aside class="inspector-panel" aria-label="Real-time device inspector">
-            <div class="inspector-heading"><div><p class="eyebrow">LIVE ASSET INSPECTOR</p><h2 id="assetTitle">MXCHIP AZ3166</h2><small id="assetDesc">Environmental / motion sensor</small></div><div class="sensor-glyph">◈</div></div>
-            <div class="reading-strip"><div class="reading-header"><span>AMBIENT TEMPERATURE</span><span class="reading-quality" id="quality"><i></i> NO SIGNAL</span></div><div class="hero-reading"><strong id="temperature">—</strong><span>°C</span></div><div class="reading-foot"><span id="tempTrend">LIVE SENSOR DATA</span><span>HTS221 · REG 30001</span></div></div>
-            <div class="sensor-grid"><div class="sensor-tile"><span class="tile-icon">♧</span><small>HUMIDITY</small><strong><span id="humidity">—</span><em>%</em></strong><div class="meter"><i id="humidityMeter"></i></div></div><div class="sensor-tile"><span class="tile-icon">◉</span><small>PRESSURE</small><strong><span id="pressure">—</span><em>hPa</em></strong><div class="meter"><i id="pressureMeter"></i></div></div><div class="sensor-tile"><span class="tile-icon">≋</span><small>WI-FI SIGNAL</small><strong><span id="rssi">—</span><em>dBm</em></strong><div class="meter"><i id="rssiMeter"></i></div></div><div class="sensor-tile"><span class="tile-icon">⤨</span><small>DEVICE UPTIME</small><strong><span id="uptime">—</span><em>sec</em></strong><div class="meter"><i id="uptimeMeter"></i></div></div></div>
-            <div class="alarm-box" id="alarmCard"><div class="alarm-heading"><span>◇ &nbsp; ALARM STATE</span><b id="alarmBadge">UNKNOWN</b></div><div class="alarm-middle"><div><strong id="alarmHeadline">Awaiting telemetry</strong><p id="alarmHint">Physical Button A controls the demo alarm register.</p></div><div id="alarmLed" class="alarm-led"></div></div><button id="demoAlarmBtn" class="demo-action" type="button" hidden>Toggle simulated alarm</button></div>
-            <div class="freshness"><div class="fresh-key">SENSOR LINK</div><span id="lastReading">No readings yet</span></div>
-            <div class="mini-motion"><span class="motion-label">ACCELERATION <small>mg</small></span><span class="axes"><b>X <span id="ax">—</span></b><b>Y <span id="ay">—</span></b><b>Z <span id="az">—</span></b></span></div>
-            <div class="device-foot"><span>MODBUS TCP <b>FC04</b></span><span id="deviceIp">192.168.1.26:502</span></div>
-          </aside>
-        </div>
-        <div class="bottom-grid">
-          <section class="timeline-panel"><div class="bottom-title"><h2>Event timeline</h2><span><i class="live-spot"></i> REAL-TIME STREAM</span></div><div id="eventList" class="events"><div class="event-item"><span class="event-time">--:--</span><span class="event-dot neutral"></span><span class="event-message">System initialized. Waiting for MXCHIP telemetry…</span></div></div></section>
-          <section class="trend-panel"><div class="bottom-title"><h2>Temperature history</h2><span>LAST 60 SAMPLES</span></div><div class="chart-wrap"><canvas id="trendCanvas" aria-label="Temperature history line chart"></canvas><div class="chart-legend"><span><i></i> TEMP °C</span><small id="chartRange">—</small></div></div></section>
-        </div>
-        <footer class="safety-footer"><span>◈ &nbsp;AURA DIGITAL TWIN PROTOTYPE</span><span>Model-only fire alarm and HVAC assets · Button A controls a <b>software demonstration alarm</b>, not certified life-safety equipment.</span></footer>
-      </main>
+          <section
+            id="projectsView"
+            class="projects-view"
+            aria-label="Saved 3D projects"
+          >
+            <div class="library-intro">
+              <div>
+                <p class="eyebrow">YOUR MODEL LIBRARY</p>
+                <h2>A place for every project.</h2>
+                <p>
+                  Open a model to see its architecture, requirements, systems,
+                  and assigned IoT devices.
+                </p>
+              </div>
+              <span class="library-count"
+                ><span id="projectCount">02</span>
+                <small>SAVED PROJECTS</small></span
+              >
+            </div>
+            <p id="projectsStatus" class="subtle" role="status">
+              Loading saved projects…
+            </p>
+            <button type="button" id="retryProjects" hidden>
+              Retry loading projects
+            </button>
+            <div id="projectCards" class="project-cards"></div>
+            <div class="library-note">
+              <span>◈</span>
+              <p>
+                Your meeting room is preserved as its own project. The new
+                building now includes the supplied furnished office layouts.
+                Building systems follow in separate phases.
+              </p>
+            </div>
+          </section>
+          <div id="modelWorkspace" hidden>
+            <div class="workspace-grid">
+              <section
+                class="viewer-panel"
+                aria-label="Interactive 3D digital twin model"
+              >
+                <div class="viewer-top">
+                  <div class="viewer-title">
+                    <span class="viewer-indicator"></span
+                    ><strong>Spatial view</strong
+                    ><small id="roomCode">MR-01</small>
+                  </div>
+                  <div class="scene-toolbar">
+                    <button
+                      type="button"
+                      id="isoBtn"
+                      class="tool-toggle active"
+                    >
+                      ◇ 3D VIEW</button
+                    ><button type="button" id="topBtn" class="tool-toggle">
+                      ⊞ TOP VIEW</button
+                    ><span class="tool-sep"></span
+                    ><button
+                      type="button"
+                      class="tool-icon"
+                      id="zoomIn"
+                      title="Zoom in"
+                    >
+                      ＋</button
+                    ><button
+                      type="button"
+                      class="tool-icon"
+                      id="zoomOut"
+                      title="Zoom out"
+                    >
+                      −</button
+                    ><button
+                      type="button"
+                      class="tool-icon"
+                      id="resetView"
+                      title="Reset camera"
+                    >
+                      ↺
+                    </button>
+                  </div>
+                </div>
+                <div id="buildingOptions" class="building-options" hidden>
+                  <label
+                    >FLOOR
+                    <select id="floorSelect" aria-label="Select building floor">
+                      <option value="all">All three floors</option>
+                      <option value="0">Ground floor</option>
+                      <option value="1">Level 01</option>
+                      <option value="2">Level 02</option>
+                    </select></label
+                  >
+                  <button type="button" id="atriumBtn" aria-pressed="false">
+                    Atrium view
+                  </button>
+                  <label
+                    ><input id="cutawayToggle" type="checkbox" /> Cutaway</label
+                  >
+                  <label
+                    ><input id="glassToggle" type="checkbox" checked />
+                    Glazing</label
+                  >
+                  <label
+                    ><input id="roofToggle" type="checkbox" checked />
+                    Roof</label
+                  >
+                </div>
+                <div
+                  id="interiorOptions"
+                  class="building-options interior-options"
+                  hidden
+                >
+                  <button id="officeViewBtn" type="button" aria-pressed="false">
+                    Office cutaway
+                  </button>
+                  <label
+                    ><input id="partitionsToggle" type="checkbox" checked />
+                    Partitions</label
+                  >
+                  <label
+                    ><input id="furnitureToggle" type="checkbox" checked />
+                    Furniture</label
+                  >
+                  <label
+                    ><input id="lowWallsToggle" type="checkbox" checked /> Low
+                    walls</label
+                  >
+                  <label
+                    ><input id="roomLabelsToggle" type="checkbox" checked />
+                    Room labels</label
+                  >
+                  <label
+                    ><input id="serviceReservesToggle" type="checkbox" />
+                    Service reserves</label
+                  >
+                </div>
+                <div
+                  class="scene"
+                  id="scene"
+                  role="group"
+                  aria-label="Interactive 3D meeting room showing furniture, MXCHIP sensor, fire-alarm demo beacon and monitored equipment"
+                >
+                  <canvas
+                    id="roomCanvas"
+                    tabindex="0"
+                    role="img"
+                    aria-label="Room model. Use arrow keys to orbit, plus and minus to zoom, and Home to reset."
+                    >Interactive schematic room. Use the asset buttons to
+                    inspect the sensor, alarm, or HVAC.</canvas
+                  >
+                  <canvas
+                    id="buildingCanvas"
+                    tabindex="0"
+                    role="img"
+                    aria-label="Three-floor atrium building. Drag to orbit, scroll to zoom; use arrow keys, plus, minus, or Home."
+                    hidden
+                    >Three-floor building with two glazed wings, a central
+                    atrium, stairs, and a lift core.</canvas
+                  >
+                  <div
+                    id="buildingLabels"
+                    class="building-labels"
+                    aria-label="Office and service-room labels"
+                  ></div>
+                  <div
+                    id="buildingStatus"
+                    class="building-status"
+                    role="status"
+                    hidden
+                  >
+                    Opening 3D building…
+                  </div>
+                  <button
+                    id="reloadBuilding"
+                    class="reload-building"
+                    type="button"
+                    hidden
+                  >
+                    Reload 3D viewer
+                  </button>
+                  <div class="scene-gradient" aria-hidden="true"></div>
+                  <div class="scene-corner">
+                    <span class="scene-key" id="sceneKey"
+                      >ARCHITECTURE MODEL</span
+                    >
+                    <div class="scene-caption">
+                      <span id="sceneCaptionLabel">ATRIUM BUILDING</span>
+                      <b>·</b>
+                      <span id="roomDimensions">11.2 × 8.2 m</span>
+                    </div>
+                  </div>
+                  <div class="scene-mini-coord">
+                    <span id="sceneOrientation">N</span> <span>↗</span
+                    ><small>DRAG TO ORBIT · SCROLL TO ZOOM</small>
+                  </div>
+                  <div
+                    class="hotspot"
+                    id="markerSensor"
+                    role="button"
+                    tabindex="0"
+                    data-asset="mxchip"
+                    aria-label="Inspect MXCHIP sensor"
+                  >
+                    <span class="pulse"></span><span class="marker-icon">◉</span
+                    ><span class="marker-text"
+                      >MXCHIP <b id="markerTemp">--°C</b></span
+                    >
+                  </div>
+                  <div
+                    class="hotspot alarm-marker"
+                    id="markerAlarm"
+                    role="button"
+                    tabindex="0"
+                    data-asset="alarm"
+                    aria-label="Inspect alarm device"
+                  >
+                    <span class="pulse"></span><span class="marker-icon">♢</span
+                    ><span class="marker-text"
+                      >ALARM <b id="markerAlarmText">—</b></span
+                    >
+                  </div>
+                  <div
+                    class="hotspot muted-marker"
+                    id="markerHVAC"
+                    role="button"
+                    tabindex="0"
+                    data-asset="hvac"
+                    aria-label="Inspect HVAC display model"
+                  >
+                    <span class="marker-icon">≋</span
+                    ><span class="marker-text">HVAC <b>MODEL</b></span>
+                  </div>
+                  <div class="viewer-caption">
+                    <span
+                      ><i class="teal-dot"></i>
+                      <span id="sensorCount">AWAITING SENSOR</span></span
+                    ><span id="assetCount"
+                      ><i class="gray-dot"></i> 3 MODEL ASSETS</span
+                    ><span id="sceneSync">AWAITING DEVICE</span>
+                  </div>
+                  <div class="scene-help" id="sceneHelp">
+                    This 3D room is an illustrative model. Only MXCHIP telemetry
+                    and its demo alarm are connected to the physical device.
+                  </div>
+                </div>
+                <div class="asset-footer" id="roomLayers">
+                  <span class="layers-icon">▤</span><span>LAYERS</span
+                  ><label
+                    ><input id="toggleHotspots" type="checkbox" checked />
+                    Sensor tags</label
+                  ><label
+                    ><input id="toggleRoom" type="checkbox" checked /> Room
+                    shell</label
+                  ><span class="foot-note"
+                    >MODEL IS SCHEMATIC · NOT TO SCALE</span
+                  >
+                </div>
+              </section>
+
+              <aside
+                id="buildingInspector"
+                class="inspector-panel building-inspector"
+                hidden
+                aria-label="Building project details"
+              >
+                <div class="building-inspector-heading">
+                  <p class="eyebrow">PROJECT OVERVIEW</p>
+                  <h2>Offices, in place.</h2>
+                  <p id="buildingDescription"></p>
+                </div>
+                <div class="building-stats">
+                  <div><strong>03</strong><span>FLOORS</span></div>
+                  <div>
+                    <strong id="buildingRoomCount">—</strong><span>ROOMS</span>
+                  </div>
+                  <div><strong>00</strong><span>IoT DEVICES</span></div>
+                </div>
+                <section class="floor-section">
+                  <div class="detail-heading">
+                    <h3>Explore the building</h3>
+                    <span id="selectedFloorLabel">ALL FLOORS</span>
+                  </div>
+                  <div class="floor-stack">
+                    <button type="button" data-floor="2">
+                      <span>▱</span><b>Level 02</b><small>+8.4 m</small>
+                    </button>
+                    <button type="button" data-floor="1">
+                      <span>▱</span><b>Level 01</b><small>+4.2 m</small>
+                    </button>
+                    <button type="button" data-floor="0">
+                      <span>▱</span><b>Ground floor</b><small>±0.0 m</small>
+                    </button>
+                    <button type="button" data-floor="all" class="selected">
+                      <span>▦</span><b>Whole building</b><small>3 floors</small>
+                    </button>
+                  </div>
+                </section>
+                <section class="room-navigator">
+                  <label for="roomSelect">Find a room</label
+                  ><select id="roomSelect">
+                    <option value="">Select an office or service space…</option>
+                  </select>
+                  <p id="floorPurpose">Ground · Arrival + public functions</p>
+                </section>
+                <div class="building-part">
+                  <small>MODEL INSPECTOR</small
+                  ><strong id="buildingPartTitle"
+                    >Furnished office layout</strong
+                  >
+                  <p id="buildingPartInfo">
+                    Select a room label, furniture item, or room from the list
+                    to inspect its area, use, and service reservations.
+                  </p>
+                </div>
+                <section class="project-iot">
+                  <div class="detail-heading">
+                    <h3>Assigned IoT</h3>
+                    <span>0 DEVICES</span>
+                  </div>
+                  <p id="projectIot"></p>
+                </section>
+                <section>
+                  <h3 class="detail-title">Project requirements</h3>
+                  <ul id="projectRequirements" class="requirements-list"></ul>
+                </section>
+                <section>
+                  <h3 class="detail-title">Build it in order</h3>
+                  <ol id="projectPhases" class="project-phases"></ol>
+                </section>
+                <p class="model-provenance">
+                  Office boundaries and room areas follow your supplied concept
+                  plans. The 40 × 24 m envelope is a working assumption;
+                  columns, clearances and service sizing still require
+                  coordination.
+                </p>
+              </aside>
+              <aside
+                id="inspectorPanel"
+                class="inspector-panel"
+                aria-label="Real-time device inspector"
+              >
+                <div class="inspector-heading">
+                  <div>
+                    <p id="inspectorLabel" class="eyebrow">CONNECTED ASSET</p>
+                    <h2 id="assetTitle">MXCHIP AZ3166</h2>
+                    <small id="assetDesc">Environmental / motion sensor</small>
+                  </div>
+                  <div class="sensor-glyph">◈</div>
+                </div>
+                <div id="sensorDetails" class="sensor-details">
+                  <div class="reading-strip">
+                    <div class="reading-header">
+                      <span>AMBIENT TEMPERATURE</span
+                      ><span class="reading-quality" id="quality"
+                        ><i></i><span id="qualityText">NO SIGNAL</span></span
+                      >
+                    </div>
+                    <div class="hero-reading">
+                      <strong id="temperature">—</strong><span>°C</span>
+                    </div>
+                    <div class="reading-foot">
+                      <span id="tempTrend">LIVE SENSOR DATA</span
+                      ><span>HTS221 · REG 30001</span>
+                    </div>
+                  </div>
+                  <div class="sensor-grid">
+                    <div class="sensor-tile">
+                      <span class="tile-icon">♧</span><small>HUMIDITY</small
+                      ><strong><span id="humidity">—</span><em>%</em></strong>
+                      <div class="meter"><i id="humidityMeter"></i></div>
+                    </div>
+                    <div class="sensor-tile">
+                      <span class="tile-icon">◉</span><small>PRESSURE</small
+                      ><strong><span id="pressure">—</span><em>hPa</em></strong>
+                      <div class="meter"><i id="pressureMeter"></i></div>
+                    </div>
+                    <div class="sensor-tile">
+                      <span class="tile-icon">≋</span><small>WI-FI SIGNAL</small
+                      ><strong><span id="rssi">—</span><em>dBm</em></strong>
+                      <div class="meter"><i id="rssiMeter"></i></div>
+                    </div>
+                    <div class="sensor-tile">
+                      <span class="tile-icon">⤨</span
+                      ><small>DEVICE UPTIME</small
+                      ><strong><span id="uptime">—</span><em>sec</em></strong>
+                      <div class="meter"><i id="uptimeMeter"></i></div>
+                    </div>
+                  </div>
+                  <div class="mini-motion">
+                    <span class="motion-label"
+                      >ACCELERATION <small>mg</small></span
+                    ><span class="axes"
+                      ><b>X <span id="ax">—</span></b
+                      ><b>Y <span id="ay">—</span></b
+                      ><b>Z <span id="az">—</span></b></span
+                    >
+                  </div>
+                  <div class="sensor-health">
+                    <strong>Sensor health</strong>
+                    <p id="sensorHealth">Awaiting telemetry</p>
+                    <p id="firmwareMode">Firmware mode unavailable</p>
+                  </div>
+                </div>
+                <div id="modelDetails" class="model-details" hidden>
+                  <h3>HVAC diffuser</h3>
+                  <p>
+                    This is a decorative room asset. No HVAC sensor or control
+                    system is connected.
+                  </p>
+                  <p>
+                    Temperature and motion readings belong to the MXCHIP sensor.
+                    Select MXCHIP to inspect those readings.
+                  </p>
+                </div>
+                <div class="alarm-box" id="alarmCard">
+                  <div class="alarm-heading">
+                    <span>◇ &nbsp; ALARM STATE</span
+                    ><b id="alarmBadge">UNKNOWN</b>
+                  </div>
+                  <div class="alarm-middle">
+                    <div>
+                      <strong id="alarmHeadline">Awaiting telemetry</strong>
+                      <p id="alarmHint">
+                        Physical Button A controls the demo alarm register.
+                      </p>
+                    </div>
+                    <div id="alarmLed" class="alarm-led"></div>
+                  </div>
+                  <button
+                    id="demoAlarmBtn"
+                    class="demo-action"
+                    type="button"
+                    hidden
+                  >
+                    Toggle simulated alarm
+                  </button>
+                </div>
+                <div id="freshness" class="freshness">
+                  <div class="fresh-key">SENSOR LINK</div>
+                  <span id="lastReading" role="status" aria-live="off"
+                    >No readings yet</span
+                  >
+                </div>
+
+                <details class="room-project-details">
+                  <summary>Project requirements &amp; IoT</summary>
+                  <p>
+                    The MXCHIP AZ3166 is assigned to this meeting room. Live
+                    mode requires the board on the same LAN, a working Modbus
+                    FC04 server, and this Python bridge.
+                  </p>
+                  <ul id="roomRequirements"></ul>
+                  <p id="roomIot"></p>
+                </details>
+                <div id="deviceFoot" class="device-foot">
+                  <span>MODBUS TCP <b>FC04</b></span
+                  ><span id="deviceIp">Awaiting device address</span>
+                </div>
+              </aside>
+            </div>
+            <div class="bottom-grid" id="roomTelemetry">
+              <section class="timeline-panel">
+                <div class="bottom-title">
+                  <h2>Event timeline</h2>
+                  <span><i class="live-spot"></i> REAL-TIME STREAM</span>
+                </div>
+                <div
+                  id="eventList"
+                  class="events"
+                  role="log"
+                  aria-label="Timestamped alarm and connection events"
+                  aria-live="polite"
+                  aria-relevant="additions"
+                >
+                  <div class="event-item">
+                    <span class="event-time">--:--</span
+                    ><span class="event-dot neutral"></span
+                    ><span class="event-message"
+                      >System initialized. Waiting for MXCHIP telemetry…</span
+                    >
+                  </div>
+                </div>
+              </section>
+              <section class="trend-panel">
+                <div class="bottom-title">
+                  <h2>Temperature history</h2>
+                  <span id="historyStatus">LOADING LOCAL HISTORY</span>
+                </div>
+                <div class="chart-wrap">
+                  <canvas
+                    id="trendCanvas"
+                    role="img"
+                    aria-describedby="chartSummary"
+                    aria-label="Temperature history line chart"
+                  ></canvas>
+                  <div class="chart-legend">
+                    <span><i></i> TEMP °C</span><small id="chartRange">—</small>
+                  </div>
+                  <p id="chartSummary" class="chart-summary">
+                    Waiting for samples. Gaps indicate missing or unavailable
+                    data.
+                  </p>
+                  <div class="chart-actions">
+                    <span id="chartTimeRange">—</span
+                    ><a href="/api/history.csv" download="aura-history.csv"
+                      >Download CSV</a
+                    >
+                  </div>
+                </div>
+              </section>
+            </div>
+            <footer class="safety-footer" id="roomFooter">
+              <span>◈ &nbsp;AURA DIGITAL TWIN PROTOTYPE</span
+              ><span
+                >Model-only fire alarm and HVAC assets · Button A controls a
+                <b>software demonstration alarm</b>, not certified life-safety
+                equipment.</span
+              >
+            </footer>
+            <footer id="buildingFooter" class="safety-footer" hidden>
+              <span>◈ AURA · ARCHITECTURE STUDIO</span
+              ><span
+                >Office layout follows the supplied 40 × 24 m schematic plans ·
+                Services are reserved; networks and equipment follow
+                later.</span
+              >
+            </footer>
+          </div>
+        </main>
+      </div>
     </div>
-  </div>
-  <dialog id="helpDialog"><h2>How this twin works</h2><p>The MXCHIP AZ3166 supplies real sensor values through its Modbus TCP Server on your Wi-Fi network. The Python application reads the device every second and pushes readings to this page using Server-Sent Events (SSE).</p><p>Drag the room to orbit. Scroll to zoom. Click sensor tags to inspect assets. Press physical <strong>Button A</strong> to toggle your firmware's <em>demo alarm</em> (Modbus input register 30006); the room and dashboard will respond after the next successful poll.</p><p>Other room fixtures are schematic and are <strong>not</strong> connected to field equipment. Start the server using <code>--demo</code> to explore using clearly labeled simulated telemetry when your MXCHIP is unavailable.</p><button type="button" id="closeHelp">Got it</button></dialog>
-  <script src="/app.js" defer></script>
-</body>
+    <dialog id="helpDialog">
+      <h2>Projects and the 3D workspace</h2>
+      <p>
+        Use Projects to switch between your preserved meeting room and the
+        three-floor atrium building. The building includes your office layouts
+        and furniture. Office cutaway and Top view reveal each floor; room
+        labels and Find a room show room IDs and areas. Service reserves reveal
+        empty plant rooms, aligned risers, and overhead route allowances.
+        Networks and equipment will follow later.
+      </p>
+      <p>
+        The MXCHIP AZ3166 supplies real sensor values through its Modbus TCP
+        Server on your Wi-Fi network. The Python application reads the device
+        every second and pushes readings to this page using Server-Sent Events
+        (SSE).
+      </p>
+      <p>
+        Drag the room to orbit. Scroll to zoom. With the room canvas focused,
+        use arrow keys to orbit, +/− to zoom, and Home to reset. Click sensor
+        tags to inspect assets. Press physical <strong>Button A</strong> to
+        toggle your firmware's <em>demo alarm</em> (Modbus input register
+        30006); the room and dashboard will respond after the next successful
+        poll.
+      </p>
+      <p>
+        Other room fixtures are schematic and are <strong>not</strong> connected
+        to field equipment. Start the server using <code>--demo</code> to
+        explore using clearly labeled simulated telemetry when your MXCHIP is
+        unavailable.
+      </p>
+      <button type="button" id="closeHelp">Got it</button>
+    </dialog>
+    <script src="/app.js" type="module"></script>
+  </body>
 </html>

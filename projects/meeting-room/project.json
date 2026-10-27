@@ -1,0 +1,35 @@
+{
+  "id": "meeting-room",
+  "name": "Meeting room / 01",
+  "code": "MR-01",
+  "category": "Connected room",
+  "description": "Your original furnished meeting room, with its MXCHIP sensor, demo alarm, and telemetry history preserved.",
+  "stage": "Connected prototype",
+  "preview": "/projects/meeting-room/preview.svg",
+  "model": { "kind": "meeting-room", "floors": 1 },
+  "requirements": [
+    { "name": "Meeting-room model and furniture", "status": "available" },
+    { "name": "MXCHIP AZ3166 · Modbus FC04", "status": "configured" },
+    {
+      "name": "Computer and MXCHIP on the same LAN",
+      "status": "required for hardware"
+    },
+    {
+      "name": "Python telemetry bridge and local history",
+      "status": "available"
+    }
+  ],
+  "iot": [
+    {
+      "id": "mxchip",
+      "name": "MXCHIP AZ3166",
+      "description": "Environmental and motion telemetry · Button A demonstration alarm",
+      "binding": "mxchip",
+      "scope": "meeting-room"
+    }
+  ],
+  "phases": [
+    { "name": "Room architecture and furniture", "status": "established" },
+    { "name": "Environmental telemetry and demo alarm", "status": "configured" }
+  ]
+}

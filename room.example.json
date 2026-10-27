@@ -1,0 +1,9 @@
+{
+  "name": "Meeting room / 01",
+  "code": "MR-01",
+  "location": "Building A · Level 01",
+  "width_m": 11.2,
+  "depth_m": 8.2,
+  "height_m": 3.72,
+  "sensor_position": { "x": 0.38, "y": 0.78, "z": 0.2 }
+}

@@ -1,76 +1,174 @@
-# aura — MXCHIP Meeting Room Digital Twin (working prototype)
+# aura — Building & Room Digital Twin Studio
 
-This is a **runnable 3D meeting-room demonstrator**. A Python server polls your existing MXCHIP AZ3166 Modbus TCP Server; telemetry is **pushed to the web page** using Server-Sent Events (SSE). The page contains a lightweight, mouse-orbitable 3D model **without external 3D libraries or CDNs**.
+A local project workspace for interactive 3D architecture and MXCHIP telemetry. It includes a new three-floor atrium building and your preserved, furnished meeting room. No firmware changes, MQTT broker, CDN, or API keys are required. The building uses a locally vendored Three.js renderer; the original room retains its Canvas2D renderer.
 
-**No MXCHIP C++ firmware changes are required. No Mosquitto installation is required.** It uses the connection that was already working in your earlier dashboard.
+## Projects
 
-## A. Run it on Windows with your MXCHIP
+Use **Projects** in the navigation or the header to see both saved models. Opening a project restores its model, requirements, development phases, and assigned IoT devices. The last opened project is remembered; direct links are also supported:
 
-1. Unzip this project into one folder. Open PowerShell in that folder.
-2. Install Python dependency:
+- `http://127.0.0.1:8090/#projects` — project library.
+- `http://127.0.0.1:8090/#project/atrium-building` — new building (default on first visit).
+- `http://127.0.0.1:8090/#project/meeting-room` — original room.
 
-   ```powershell
-   py -m pip install -r requirements.txt
-   ```
-3. Confirm the physical board is connected to the same LAN and its Modbus port is reachable:
+The original room's geometry is preserved in **`projects/meeting-room/model.js`**, with its saved configuration in `room.json` and requirements/device metadata in `project.json`. Its furniture, camera controls, MXCHIP telemetry, demonstration alarm, SQLite history, and CSV export remain available in that project. `--room-config` continues to override the meeting-room configuration.
 
-   ```powershell
-   Test-NetConnection 192.168.1.26 -Port 502
-   ```
-4. Start the twin:
+The building is in **`projects/atrium-building/`**. It now includes the supplied revision A office plans: ground-floor arrival and public functions, first-floor teams and collaboration, and second-floor leadership and boardroom. There are 52 named rooms plus stairs, cores and risers across three occupiable floors, with an unoccupied glazed roof. The existing white frame, blue-green glazing, sloping glazed crowns, central atrium, galleries, stairs, lift core and revolving entrance are retained and adapted to the plans.
 
-   ```powershell
-   py server.py --device 192.168.1.26
-   ```
-5. Open **http://127.0.0.1:8090** in Chrome or Edge. Do **not** double-click `index.html`: it must be served through `server.py`.
+The office geometry follows the plans' **40 × 24 m working envelope**, with two 15 m wings, a 10 m central zone, and 2.4 m main corridors. Front is +Z; it does not indicate geographic north. Floor elevations remain 0, 4.2 and 8.4 m. This is a schematic model: the plans do not establish surveyed dimensions, detailed stair geometry, structural coordination or an installation design. The phase-one shell is saved in `projects/atrium-building/archive/shell-v1.js`.
 
-**Note:** It uses port **8090**, not 8080, so it can run alongside your previous dashboard. For best results, close the old dashboard Python script and any Modbus clients, because some MXCHIP firmware versions support only one TCP client at a time. The board's IP can change after reconnection—use the IP currently displayed on the MXCHIP OLED.
+Building controls:
 
-## B. Try it without the device (clearly labeled simulation)
+- Drag to orbit through 360°, scroll to zoom, or use the view/zoom buttons. Right-drag pans; touch gestures are supported.
+- Select **Ground floor**, **Level 01**, or **Level 02** to isolate a floor. **Whole building** restores all three.
+- **Office cutaway** opens a furnished floor; **Top** shows its plan. **Low walls** exposes furniture while preserving the room boundaries; turn it off to see full-height partitions.
+- **Find a room** or a room label selects its location, ID, area, capacity and design notes. Furniture, partitions and labels can be toggled independently.
+- **Service reserves** shows empty plant/IT reserves, aligned shaft compartments, corridor ceiling-route allowances and an empty rear service-yard reservation. These volumes represent coordination space, not installed equipment.
+- **Atrium view** opens the front and roof to inspect the galleries, stairs, and lift core.
+- **Cutaway**, **Glazing**, and **Roof** control architectural visibility. Interior and individual-floor views automatically hide the roof.
+- Click a room, furniture item or structural element to inspect it. Keyboard arrows orbit, +/− zoom, and Home restores the overview.
+
+The building has **zero assigned IoT devices**. The MXCHIP remains assigned to the meeting room; switching models does not move its readings into the building. Requirements and a roadmap are stored with each project. Architecture and office furnishing are established. HVAC, fire detection, pump/sprinkler equipment, piping and IoT/BMS integration remain planned. Ground-floor fire pump, water/mechanical, electrical and server/UPS rooms, upper-floor AHU rooms, IDF spaces and risers are reserved without fitted equipment. Toilets and pantries align vertically; BMS/security has operator furniture only.
+
+## Run on macOS or Linux
+
+Use Python 3.10 or newer:
+
+```sh
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install -r requirements.txt
+python server.py --demo
+```
+
+Open **http://127.0.0.1:8090**. To read the physical board instead:
+
+```sh
+python server.py --device 192.168.1.26
+```
+
+Use the IP currently displayed on the MXCHIP OLED. The computer and board must be on the same LAN. Close other dashboards or Modbus clients if the board only supports one TCP connection.
+
+## Run on Windows
+
+In PowerShell, from the project folder:
 
 ```powershell
-py server.py --demo
+py -m pip install -r requirements.txt
+Test-NetConnection 192.168.1.26 -Port 502
+py server.py --device 192.168.1.26
 ```
 
-Open http://127.0.0.1:8090. **SIMULATED MODE** is displayed prominently. You can activate/deactivate a demo alarm using the button on the right. None of this data is claimed to be from the physical device.
+For simulation, use `py server.py --demo`. Open **http://127.0.0.1:8090** in the browser. Serve the page through `server.py`; opening `index.html` directly will not connect it to the API. Press Ctrl+C to stop.
 
-## What the prototype demonstrates
+## Data quality and alarms
 
-| Object or behavior | Source | Behavior |
-| --- | --- | --- |
-| Room geometry, chairs, meeting table, wall display | Procedural 3D canvas | Schematic/demo objects, clickable and orbitable |
-| MXCHIP digital sensor | Modbus FC04 input register 30001 etc. | Temperature, humidity, pressure, RSSI, uptime, acceleration |
-| Alarm marker and room visual change | Input register **30006** from MXCHIP Button A | UI turns red and logs a demo alarm transition |
-| Smoke detector, FACP, HVAC diffuser, room fixtures | Decorative 3D model only | **Not physically connected**; no fabricated telemetry |
-| 1-second data stream | Python background Modbus polling | Python SSE pushes readings into the website, no Refresh |
-| Offline state | Modbus read exceptions | UI marks device offline, previous readings labeled stale |
-| Demo mode | Local Python simulator | Clearly flagged **SIMULATED** with toggle button |
+In the meeting-room project, the dashboard distinguishes network connectivity from sensor quality:
 
-The **physical Button A must actually toggle register 30006** for alarm visualization to change in live mode. Some earlier firmware revisions had Button A/B issues; if your button is not working, the site cannot invent an alarm event.
+| Status | Meaning |
+| --- | --- |
+| DEVICE ONLINE / LIVE | Device responds, samples advance, and sensor health is valid |
+| SIMULATED STREAM / SIMULATED | Values are generated locally in software |
+| CONNECTED · SENSOR STALE | Sample age exceeded the deadline, or the sequence stopped advancing |
+| CONNECTED · SENSOR FAULT | Firmware reports a failed sensor |
+| CONNECTED · DATA UNAVAILABLE | Required measurement is missing or invalid |
+| CONNECTED · QUALITY UNVERIFIED | Firmware cannot establish sample age or sensor health |
+| DEVICE OFFLINE | Modbus reads failed |
+| STREAM RECONNECTING / STREAM STALLED | Browser lost its stream, or no state updates arrived before the deadline |
 
-This is *near real time* (one Modbus polling cycle + network/render latency), not hardware interrupt-driven MQTT push. Because existing firmware uses Modbus TCP, the MXCHIP is answering requests rather than initiating them. Future MQTT integration can replace the data ingestion layer while the 3D room remains unchanged.
+The default sensor deadline is `max(5 seconds, 3 × polling interval)`. It can be changed with `--stale-after`. The browser independently watches for missing stream updates and checks again when a background tab becomes visible.
 
-## Learning the flow
+Invalid Boolean registers stay **UNKNOWN**, including unsupported values other than 0 or 1. Invalid health masks never report healthy sensors. While disconnected or stale, the current alarm is UNKNOWN and the inspector labels the last known alarm state and time.
 
-```text
-MXCHIP sensors (real hardware)
-  -> MXCHIP Modbus TCP Server 192.168.1.26:502
-  -> server.py (PyModbus FC04, every 1 second)
-  -> Python normalizes data into structured JSON
-  -> /api/events (SSE, server pushes data to browser)
-  -> app.js updates 3D model markers, status panels, timeline, graph
+Physical **Button A must toggle input register 30006 in your firmware**. FC04 is read-only; the browser cannot change that physical register. The simulated alarm button appears only in demo mode and publishes changes immediately.
+
+The reader prefers the 26-register firmware map, version 2. Older or unknown maps fall back to temperature at register 30001; other readings remain unavailable and sample quality is unverified.
+
+## History and CSV export
+
+The server saves temperature samples, quality, and alarm transitions to **`data/aura.sqlite3`**, using Python's built-in SQLite library. History survives page reloads and server restarts. Sources are separated by room code, simulation/live mode, device host, port, and unit identifier.
+
+- The chart restores the latest 60 retained samples, with a real time axis. Repeated device sequences and replayed messages do not create duplicate measurements.
+- Missing, faulty, and stale readings appear as gaps. Amber segments mark samples whose quality is unverified. Server restarts also break the line.
+- Alarm events have stable IDs and their original UTC timestamps, displayed in the browser's local timezone. SSE resumes missed transitions without duplicating already delivered alarms.
+- **Download CSV** exports retained temperature history and quality, including timestamps, source-session IDs, and simulation labels.
+- Retention is bounded to 10,000 samples and 10,000 alarm transitions per source. The API returns the latest 100 alarm transitions for the timeline.
+
+Choose another database or disable disk persistence:
+
+```sh
+python server.py --demo --history-db /path/to/history.sqlite3
+python server.py --demo --history-db :memory:
 ```
 
-Browser has no raw TCP access to Modbus. Python performs that communication. `/api/state` returns the most recent reading and `/api/events` streams updates.
+If local storage fails, live telemetry continues and the dashboard reports the history error. The SQLite file contains local telemetry records; it is excluded from Git.
 
-## Testing and troubleshooting
+## Room and sensor configuration
 
-- **OFFLINE / stale:** Check board IP, port 502, Wi-Fi, and Modbus server. Run `Test-NetConnection <device IP> -Port 502`. Stop other clients.
-- **Register map mismatch:** The backend uses the existing *26-register* map version 2 when available, with a fallback to just temperature (30001). Missing measurements show as unavailable; alarms show UNKNOWN if not mapped.
-- **Buttons:** If physical A doesn't change alarm register 30006, fix firmware input handling separately. The dashboard cannot toggle live alarm over FC04 (read-only).
-- **3D missing:** The 3D is rendered with HTML canvas, no CDN; supported in modern Chromium browsers. Check browser console for JavaScript errors.
-- **Local only:** The demo server binds to `127.0.0.1`. For safety, don't forward Modbus port 502 or publish this demo to an untrusted network.
+Copy and edit `room.example.json`, then run:
+
+```sh
+python server.py --demo --room-config room.example.json
+```
+
+Configure the room name, code, location, dimensions, and MXCHIP position without editing JavaScript. Dimensions and positions use metres. The room center is x=0, z=0; y is height above the floor. The server validates dimensions and ensures the sensor lies inside the room. The renderer scales the schematic room and moves the sensor marker with the board model. Furniture remains schematic and scales with the room.
+
+The workspace currently has two model projects and one device connection, assigned to the meeting room. Additional device connections will be established in later phases. Hosting and authentication are future work; the server binds to `127.0.0.1`.
+
+## Controls and accessibility
+
+Drag to orbit, scroll to zoom, or use the view and zoom buttons. With the room canvas focused, arrow keys orbit, +/− zoom, and Home resets the camera. Sensor tags support Enter and Space. View buttons expose their selected state, connection changes are announced to assistive technology, and reduced-motion preferences disable pulsing and smooth scrolling.
+
+The inspector shows MXCHIP telemetry only for the sensor. The alarm view shows its demo input; the HVAC view explains that the model has no connected measurements or controls. Sensor health and firmware mode are available in the sensor inspector. The temperature chart also has a textual summary and CSV export.
+
+## Files and API
+
+| File | Responsibility |
+| --- | --- |
+| `server.py` | Single application entry point, polling, quality assessment, HTTP and SSE |
+| `device_reader.py` | Modbus FC04 reads, register decoding, temperature-only fallback |
+| `history.py` | Bounded SQLite sample and alarm history |
+| `telemetry.js` | Browser stream state, sample deduplication, chart segmentation |
+| `app.js` | Shared workspace, room telemetry, and preserved Canvas2D room viewer |
+| `project-ui.js`, `projects.py` | Project cards, navigation, metadata and catalog API |
+| `building-viewer.js` | WebGL camera, model selection, floor and layer controls |
+| `projects/meeting-room/` | Preserved room model, configuration, manifest and preview |
+| `projects/atrium-building/` | Architecture, office-layout data, furniture geometry, manifest, preview and original shell archive |
+| `vendor/` | Locally served, pinned Three.js and OrbitControls modules |
+| `index.html`, `style.css` | Accessible page structure, responsive layout, styling |
+| `room.example.json` | Example room and sensor configuration |
+| `tests/` | Python, JavaScript, and real-browser regression checks |
+
+`GET /api/projects` returns project manifests with requirements, phases, and scoped IoT assignments. `GET /api/state` returns the latest state and configuration. `GET /api/events` streams configuration, state, and alarm events with resumable IDs. `GET /api/history` returns recent samples and alarms. `GET /api/history.csv` downloads retained temperature history. `POST /api/demo/toggle-alarm` is available only in demo mode. Running `device_reader.py` directly prints instructions to use `server.py`.
+
+Run `python server.py --help` for all options. Ports, unit IDs, timeout, interval, freshness deadline, and room configuration are validated before polling starts.
+
+## Development and verification
+
+Node.js is required only for frontend development and tests. The running dashboard needs Python and a modern browser; the building viewer also requires WebGL. The original meeting room remains usable without WebGL. Three.js and OrbitControls are pinned in `package-lock.json` and copied into `vendor/`, including their MIT license, so runtime rendering needs no external network access. After intentionally updating Three.js, run `npm run vendor:three` to refresh those local modules.
+
+```sh
+python -m unittest discover -s tests -v
+npm test
+npm ci
+npm run format:check
+npm run test:browser
+```
+
+Python tests cover register decoding, invalid data, firmware fallback, stale/frozen samples, offline history, SQLite persistence, CLI validation, HTTP endpoints, and SSE replay. JavaScript tests also check room tiling and areas, corridor widths, vertical service alignment, furniture capacities, empty reserves, door openings and upper-floor slab openings, as well as the three-floor structure, preserved room and telemetry behavior.
+
+Browser checks start an isolated demo server and database, verify the three furnished floor plans, room navigation, interior layers, service reserves, atrium and glazing, project switching and IoT isolation, then exercise the original room’s alarm, history, reconnection, inspectors and keyboard controls. Desktop/mobile screenshots and each floor's plan are saved under `test-results/`. On macOS the test uses installed Google Chrome. On other systems, first run `npx playwright install chromium`. Set `PYTHON_BIN` if your Python interpreter is not at `.venv/bin/python` (`.venv/Scripts/python.exe` on Windows). Set `AURA_BROWSER_CHANNEL` to override the browser channel.
+
+Format the frontend with `npm run format`. Runtime data, virtual environments, installed development packages, caches, and browser artifacts are ignored by Git. No hardware is needed for the automated tests; verify real firmware mapping and sensor behavior separately on the board.
+
+## Troubleshooting
+
+- **Device offline:** Check the OLED IP, Wi-Fi, port 502, and other connected clients.
+- **Sensor stale:** Check sample age and sequence in `/api/state`; a working TCP connection can coexist with frozen firmware sampling.
+- **Sensor fault or unverified:** Read the sensor-health and firmware-mode details in the inspector.
+- **Stream stalled:** Check that the Python server is running. The browser reconnects automatically.
+- **Alarm does not change:** Verify that physical Button A changes register 30006 in your firmware.
+- **History unavailable:** Check database path permissions and free disk space.
 
 ## Safety
 
-The room is a concept model, not a surveyed building or BIM. MXCHIP environmental values are not calibrated certified measurements. **Button A is a software demo alarm only**, not a real fire alarm. Do not use this system for life safety decisions.
+The room is a schematic concept model, not a surveyed building or BIM. Environmental values are not calibrated certified measurements. **Button A is a software demonstration alarm, not a real fire alarm.** This system must not be used for life-safety decisions.
