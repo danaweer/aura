@@ -3,6 +3,7 @@ import { FLOORS, ROOM_COUNT } from "./projects/atrium-building/layout.js";
 import { ProjectLibrary, renderProjectDetails } from "./project-ui.js";
 import { buildMeetingRoom } from "./projects/meeting-room/model.js";
 import { TelemetrySession, mergeSamples, chartSegments } from "./telemetry.js";
+import { ViewerFullscreen } from "./viewer-fullscreen.js";
 
 const $ = (id) => document.getElementById(id);
 const scene = $("scene");
@@ -900,6 +901,7 @@ function renderRoomHeading() {
   document.title = `aura — ${room.name}`;
 }
 function showLibrary() {
+  viewerFullscreen.close();
   projectRequest++;
   $("projectsView").hidden = false;
   $("modelWorkspace").hidden = true;
@@ -925,6 +927,8 @@ async function activateProject(project) {
   activeProject = project;
   const request = ++projectRequest;
   const roomProject = project.model.kind === "meeting-room";
+  if (roomProject) viewerFullscreen.close();
+  $("fullscreenBtn").hidden = roomProject;
   $("projectsView").hidden = true;
   $("modelWorkspace").hidden = false;
   $("navProjects").classList.remove("active");
@@ -1002,7 +1006,7 @@ async function activateProject(project) {
     $("assetCount").textContent = `${ROOM_COUNT} ROOMS · FURNISHED`;
     $("sceneSync").textContent = "ARCHITECTURAL CONCEPT";
     $("sceneHelp").textContent =
-      "Choose an exterior view or isolate a furnished floor. Hide roofs and ceilings to inspect; Concept services shows connected air routes and rooftop reservations.";
+      "Left-drag to orbit · Middle-drag to pan · Scroll to zoom. Use Full screen for a larger workspace with floor, room and visibility controls.";
     renderProjectDetails(project);
     $("buildingRoomCount").textContent = String(ROOM_COUNT);
     $("roomSelect").replaceChildren(
@@ -1027,33 +1031,37 @@ async function activateProject(project) {
       const { BuildingViewer } = await import("./building-viewer.js");
       if (request !== projectRequest) return;
       if (!buildingViewer)
-        buildingViewer = new BuildingViewer($("buildingCanvas"), (part) => {
-          $("buildingPartTitle").textContent =
-            part.label || "Architectural element";
-          const level =
-            part.floor == null
-              ? "Roof"
-              : part.floor === 0
-                ? "Ground floor"
-                : `Level 0${part.floor}`;
-          if (part.roomId && buildingViewer) {
-            const space = buildingViewer.model.rooms.find(
-              (item) => item.id === part.roomId,
-            );
-            if (space) {
-              $("roomSelect").value = space.id;
-              const capacity = space.count
-                ? ` · ${space.count} ${["desks", "ceo", "bms"].includes(space.furniture) ? "desks" : "seats"}`
-                : "";
-              $("buildingPartInfo").textContent =
-                `${level} · ${space.area} m²${capacity}. ${space.note || "Furnished according to the supplied schematic office plan."}`;
-              updateBuildingControls();
-              return;
+        buildingViewer = new BuildingViewer(
+          $("buildingCanvas"),
+          (part) => {
+            $("buildingPartTitle").textContent =
+              part.label || "Architectural element";
+            const level =
+              part.floor == null
+                ? "Roof"
+                : part.floor === 0
+                  ? "Ground floor"
+                  : `Level 0${part.floor}`;
+            if (part.roomId && buildingViewer) {
+              const space = buildingViewer.model.rooms.find(
+                (item) => item.id === part.roomId,
+              );
+              if (space) {
+                $("roomSelect").value = space.id;
+                const capacity = space.count
+                  ? ` · ${space.count} ${["desks", "ceo", "bms"].includes(space.furniture) ? "desks" : "seats"}`
+                  : "";
+                $("buildingPartInfo").textContent =
+                  `${level} · ${space.area} m²${capacity}. ${space.note || "Furnished according to the supplied schematic office plan."}`;
+                updateBuildingControls();
+                return;
+              }
             }
-          }
-          $("buildingPartInfo").textContent =
-            `${level} · ${part.detail || (part.kind === "reserve" ? "Reserved coordination space; no fitted equipment installed." : "Concept model; no live device is assigned to this element.")}`;
-        });
+            $("buildingPartInfo").textContent =
+              `${level} · ${part.detail || (part.kind === "reserve" ? "Reserved coordination space; no fitted equipment installed." : "Concept model; no live device is assigned to this element.")}`;
+          },
+          updateBuildingControls,
+        );
       buildingViewer.setActive(true);
       $("buildingStatus").hidden = true;
       updateBuildingControls();
@@ -1165,5 +1173,20 @@ for (const [id, key] of [
     updateBuildingControls();
   };
 $("reloadBuilding").onclick = () => location.reload();
+const viewerFullscreen = new ViewerFullscreen({
+  root: $("viewerPanel"),
+  panel: $("fullscreenControls"),
+  mount: $("fullscreenControlMount"),
+  button: $("fullscreenBtn"),
+  panelButton: $("fullscreenPanelToggle"),
+  canvas: $("buildingCanvas"),
+  controls: [
+    $("buildingOptions"),
+    $("interiorOptions"),
+    $("roomSelect").closest(".room-navigator"),
+    $("buildingPartTitle").closest(".building-part"),
+  ],
+  onResize: () => buildingViewer?.resize(),
+});
 library = new ProjectLibrary(activateProject, showLibrary);
 library.load();

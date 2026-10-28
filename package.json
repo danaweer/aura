@@ -4,8 +4,8 @@
   "type": "module",
   "scripts": {
     "test": "node --test tests/*.test.js",
-    "format": "prettier --write app.js telemetry.js project-ui.js building-viewer.js index.html style.css \"projects/**/*.js\" \"projects/**/*.json\" \"scripts/*.js\" tests/*.js package.json room.example.json",
-    "format:check": "prettier --check app.js telemetry.js project-ui.js building-viewer.js index.html style.css \"projects/**/*.js\" \"projects/**/*.json\" \"scripts/*.js\" tests/*.js package.json room.example.json",
+    "format": "prettier --write app.js telemetry.js project-ui.js building-viewer.js viewer-fullscreen.js index.html style.css \"projects/**/*.js\" \"projects/**/*.json\" \"scripts/*.js\" tests/*.js package.json room.example.json",
+    "format:check": "prettier --check app.js telemetry.js project-ui.js building-viewer.js viewer-fullscreen.js index.html style.css \"projects/**/*.js\" \"projects/**/*.json\" \"scripts/*.js\" tests/*.js package.json room.example.json",
     "test:browser": "node tests/browser-smoke.js",
     "vendor:three": "node scripts/vendor-three.js"
   },

@@ -164,6 +164,7 @@
           <div id="modelWorkspace" hidden>
             <div class="workspace-grid">
               <section
+                id="viewerPanel"
                 class="viewer-panel"
                 aria-label="Interactive 3D digital twin model"
               >
@@ -204,6 +205,26 @@
                       title="Reset camera"
                     >
                       ↺
+                    </button>
+                    <button
+                      id="fullscreenPanelToggle"
+                      class="tool-toggle"
+                      type="button"
+                      aria-controls="fullscreenControls"
+                      aria-expanded="true"
+                      hidden
+                    >
+                      Hide controls
+                    </button>
+                    <button
+                      id="fullscreenBtn"
+                      class="tool-toggle"
+                      type="button"
+                      aria-label="Enter fullscreen building view"
+                      aria-pressed="false"
+                      hidden
+                    >
+                      ⛶ Full screen
                     </button>
                   </div>
                 </div>
@@ -301,7 +322,7 @@
                     id="buildingCanvas"
                     tabindex="0"
                     role="img"
-                    aria-label="Three-floor atrium building. Drag to orbit, scroll to zoom; use arrow keys, plus, minus, or Home."
+                    aria-label="Three-floor atrium building. Left-drag to orbit, middle-drag to pan, scroll to zoom; use arrow keys, plus, minus, or Home."
                     hidden
                     >Three-floor furnished building with opaque private and
                     service rooms, solid wing roofs, a glazed atrium,
@@ -341,7 +362,10 @@
                   </div>
                   <div class="scene-mini-coord">
                     <span id="sceneOrientation">N</span> <span>↗</span
-                    ><small>DRAG TO ORBIT · SCROLL TO ZOOM</small>
+                    ><small
+                      >DRAG TO ORBIT · MIDDLE-DRAG TO PAN · SCROLL TO
+                      ZOOM</small
+                    >
                   </div>
                   <div
                     class="hotspot"
@@ -393,6 +417,19 @@
                     and its demo alarm are connected to the physical device.
                   </div>
                 </div>
+                <aside
+                  id="fullscreenControls"
+                  class="fullscreen-controls"
+                  aria-label="Fullscreen view and visibility controls"
+                  hidden
+                >
+                  <h2>View &amp; visibility</h2>
+                  <p>
+                    Left-drag to orbit · Middle-drag to pan · Scroll to zoom.
+                    Press Esc to exit.
+                  </p>
+                  <div id="fullscreenControlMount"></div>
+                </aside>
                 <div class="asset-footer" id="roomLayers">
                   <span class="layers-icon">▤</span><span>LAYERS</span
                   ><label
@@ -688,10 +725,12 @@
         empty plant rooms, aligned risers, and overhead route allowances.
         Finished exterior, front, rear, side and roof inspection views are
         available. Roofs and Ceilings are separate controls and automatically
-        hide during floor isolation. Concept services toggles rooftop
-        placeholders and connected air paths: blue supply, sage return and amber
-        sanitary exhaust. This is a conceptual model, not an installation
-        design.
+        hide during floor isolation. Full screen opens the building with a
+        visibility sidebar; Hide controls gives more canvas space. Press Esc or
+        Exit full screen to return. Left-drag orbits, middle-drag pans, and the
+        wheel zooms. Concept services toggles rooftop placeholders and connected
+        air paths: blue supply, sage return and amber sanitary exhaust. This is
+        a conceptual model, not an installation design.
       </p>
       <p>
         The MXCHIP AZ3166 supplies real sensor values through its Modbus TCP

@@ -145,6 +145,140 @@ try {
     "false",
   );
   await page.locator("#systemsToggle").check();
+  // Middle-drag translates the model without rotating/scaling it or selecting an asset.
+  async function checkMiddlePan(ids, overLabel = false) {
+    const labels = ids.map((id) =>
+      page.locator(`#buildingLabels button[data-room-id="${id}"]`),
+    );
+    const before = await Promise.all(
+      labels.map((label) => label.boundingBox()),
+    );
+    const title = await page.locator("#buildingPartTitle").textContent();
+    const rect = await page.locator("#buildingCanvas").boundingBox();
+    const x = overLabel
+        ? before[0].x + before[0].width / 2
+        : rect.x + rect.width * 0.5,
+      y = overLabel
+        ? before[0].y + before[0].height / 2
+        : rect.y + rect.height * 0.5;
+    await page.mouse.move(x, y);
+    await page.mouse.down({ button: "middle" });
+    await page.mouse.move(x + 45, y + 25, { steps: 5 });
+    await page.mouse.up({ button: "middle" });
+    const after = await Promise.all(labels.map((label) => label.boundingBox()));
+    for (let i = 0; i < before.length; i++) {
+      assert.ok(
+        Math.abs(after[i].x - before[i].x - 45) < 2,
+        "Middle-drag pans horizontally",
+      );
+      assert.ok(
+        Math.abs(after[i].y - before[i].y - 25) < 2,
+        "Middle-drag pans vertically",
+      );
+    }
+    await expect(page.locator("#buildingPartTitle")).toHaveText(title);
+  }
+  await page.locator("#floorSelect").selectOption("0");
+  await page.locator("#topBtn").click();
+  await checkMiddlePan(["G-01", "G-05"]);
+  await checkMiddlePan(["G-01", "G-05"], true);
+  await page.locator("#isoBtn").click();
+  await page.locator("#fullscreenBtn").click();
+  await expect(page.locator("#viewerPanel")).toHaveAttribute(
+    "data-fullscreen",
+    "native",
+  );
+  assert.equal(
+    await page.evaluate(() => document.fullscreenElement?.id),
+    "viewerPanel",
+  );
+  await expect(page.locator("#fullscreenControls #floorSelect")).toBeVisible();
+  await expect(page.locator("#fullscreenControls #roomSelect")).toBeVisible();
+  await expect
+    .poll(() =>
+      page
+        .locator("#viewerPanel")
+        .evaluate((el) => Math.abs(el.clientHeight - window.innerHeight)),
+    )
+    .toBeLessThan(2);
+  await page.screenshot({
+    path: path.join(root, "test-results", "building-fullscreen.png"),
+  });
+  const visiblePanelWidth = (
+    await page.locator("#buildingCanvas").boundingBox()
+  ).width;
+  await page.locator("#fullscreenPanelToggle").click();
+  await expect(page.locator("#fullscreenControls")).toBeHidden();
+  await expect
+    .poll(
+      async () => (await page.locator("#buildingCanvas").boundingBox()).width,
+    )
+    .toBeGreaterThan(visiblePanelWidth);
+  await page.locator("#fullscreenPanelToggle").click();
+  await page.locator("#roofToggle").uncheck();
+  await page.locator("#ceilingsToggle").uncheck();
+  await expect(page.locator("#buildingCanvas")).toHaveAttribute(
+    "data-roof-visible",
+    "false",
+  );
+  await expect(page.locator("#buildingCanvas")).toHaveAttribute(
+    "data-ceilings-visible",
+    "false",
+  );
+  await page.locator("#floorSelect").selectOption("1");
+  await page.locator("#topBtn").click();
+  await checkMiddlePan(["L1-01", "L1-04"]);
+  await page.locator("#roomSelect").selectOption("L1-S01");
+  await expect(
+    page.locator("#fullscreenControls #buildingPartTitle"),
+  ).toContainText("L1-S01");
+  await page.locator("#systemsToggle").uncheck();
+  await page.screenshot({
+    path: path.join(root, "test-results", "building-fullscreen-floor.png"),
+  });
+  await page.locator("#furnitureToggle").uncheck();
+  await page.keyboard.press("Escape");
+  await expect(page.locator("#viewerPanel")).toHaveAttribute(
+    "data-fullscreen",
+    "off",
+  );
+  await expect(page.locator("#fullscreenControls")).toBeHidden();
+  await expect(
+    page.locator("#viewerPanel > #buildingOptions #floorSelect"),
+  ).toHaveValue("1");
+  await expect(page.locator("#buildingInspector #roomSelect")).toHaveValue(
+    "L1-S01",
+  );
+  await expect(page.locator("#furnitureToggle")).not.toBeChecked();
+  await page.locator("#furnitureToggle").check();
+  await page.locator("#isoBtn").click();
+  await page.locator("#roofToggle").check();
+  await page.locator("#ceilingsToggle").check();
+  await page.locator("#systemsToggle").check();
+  // If native fullscreen is unavailable, the expanded viewer remains usable and exits cleanly.
+  await page.evaluate(() => {
+    window.originalRequestFullscreen = Element.prototype.requestFullscreen;
+    Element.prototype.requestFullscreen = () =>
+      Promise.reject(new Error("Fullscreen disabled for fallback test"));
+  });
+  await page.locator("#fullscreenBtn").click();
+  await expect(page.locator("#viewerPanel")).toHaveAttribute(
+    "data-fullscreen",
+    "expanded",
+  );
+  await expect(page.locator("#fullscreenControls #glassToggle")).toBeVisible();
+  await page.locator("#fullscreenBtn").click();
+  await expect(page.locator("#viewerPanel")).toHaveAttribute(
+    "data-fullscreen",
+    "off",
+  );
+  await page.evaluate(() => {
+    Element.prototype.requestFullscreen = window.originalRequestFullscreen;
+    delete window.originalRequestFullscreen;
+  });
+  console.log(
+    "PASS Middle-button panning, native fullscreen, sidebar layers, panel resizing, Escape exit, state restoration and fullscreen fallback",
+  );
   for (const floor of ["0", "1", "2"]) {
     await page.locator("#floorSelect").selectOption(floor);
     await expect(page.locator("#buildingCanvas")).toHaveAttribute(
@@ -314,6 +448,21 @@ try {
     path: path.join(root, "test-results", "building-mobile.png"),
     fullPage: true,
   });
+  await page.locator("#fullscreenBtn").click();
+  await expect(page.locator("#fullscreenControls #floorSelect")).toBeVisible();
+  await page.locator("#fullscreenPanelToggle").click();
+  await expect(page.locator("#fullscreenControls")).toBeHidden();
+  assert.ok(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= window.innerWidth,
+    ),
+    "Mobile fullscreen fits",
+  );
+  await page.locator("#fullscreenBtn").click();
+  await expect(page.locator("#viewerPanel")).toHaveAttribute(
+    "data-fullscreen",
+    "off",
+  );
   await page.setViewportSize({ width: 1440, height: 1000 });
   await page.locator("#openProjectsBtn").click();
   await expect(page.locator("#projectCards .project-card")).toHaveCount(2);

@@ -18,7 +18,8 @@ The office geometry follows the plans' **40 × 24 m working envelope**, with two
 
 Building controls:
 
-- Drag to orbit through 360°, scroll to zoom, or use the view/zoom buttons. Right-drag pans; touch gestures are supported.
+- Left-drag to orbit through 360°, hold the middle mouse button (scroll wheel) and drag to pan, or scroll to zoom. Right-drag also pans; touch gestures remain supported. Panning does not select a room or asset.
+- **Full screen** opens the same building viewer across the monitor, with a side panel for floors, views, room selection and visibility. **Hide controls** expands the canvas; **Show controls** restores the panel. **Exit full screen** or Escape returns to the dashboard and preserves camera/layer selections. Unsupported or restricted browsers use an expanded browser-window view instead. The existing controls are moved into the sidebar and restored on exit; they are not duplicated.
 - Select **Ground floor**, **Level 01**, or **Level 02** to isolate a floor. **Whole building** restores all three.
 - The inspection-view selector includes **Finished exterior**, **Front / arrival**, **Rear / services**, **Left side**, **Right side** and **Roof inspection**.
 - **Office cutaway** opens a furnished floor; **Top** shows its plan. **Low walls** exposes furniture while preserving the room boundaries; turn it off to see full-height partitions.
@@ -133,6 +134,7 @@ The inspector shows MXCHIP telemetry only for the sensor. The alarm view shows i
 | `app.js` | Shared workspace, room telemetry, and preserved Canvas2D room viewer |
 | `project-ui.js`, `projects.py` | Project cards, navigation, metadata and catalog API |
 | `building-viewer.js` | WebGL camera, model selection, floor and layer controls |
+| `viewer-fullscreen.js` | Native fullscreen, expanded-view fallback, visibility sidebar and control restoration |
 | `projects/meeting-room/` | Preserved room model, configuration, manifest and preview |
 | `projects/atrium-building/` | Original room-layout data, architecture, services, reusable geometry, layer visibility, manifest, preview and original shell archive |
 | `vendor/` | Locally served, pinned Three.js and OrbitControls modules |

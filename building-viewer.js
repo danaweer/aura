@@ -10,7 +10,7 @@ import {
 } from "./projects/atrium-building/visibility.js";
 
 export class BuildingViewer {
-  constructor(canvas, onSelect = () => {}) {
+  constructor(canvas, onSelect = () => {}, onStateChange = () => {}) {
     this.canvas = canvas;
     this.active = false;
     this.floor = "all";
@@ -26,6 +26,7 @@ export class BuildingViewer {
     this.ceilings = true;
     this.systems = true;
     this.onSelect = onSelect;
+    this.onStateChange = onStateChange;
     this.labelLayer = document.getElementById("buildingLabels");
     this.labelButtons = [];
     this.planNotes = [];
@@ -45,6 +46,12 @@ export class BuildingViewer {
     this.camera = new THREE.PerspectiveCamera(36, 1, 0.2, 220);
     this.controls = new OrbitControls(this.camera, canvas);
     this.controls.enableDamping = false;
+    this.controls.mouseButtons = {
+      LEFT: THREE.MOUSE.ROTATE,
+      MIDDLE: THREE.MOUSE.PAN,
+      RIGHT: THREE.MOUSE.PAN,
+    };
+    this.controls.screenSpacePanning = true;
     this.controls.minDistance = 12;
     this.controls.maxDistance = 120;
     this.controls.maxPolarAngle = Math.PI * 0.485;
@@ -113,12 +120,33 @@ export class BuildingViewer {
     this.raycaster = new THREE.Raycaster();
     let down = null;
     canvas.addEventListener("pointerdown", (event) => {
-      down = { x: event.clientX, y: event.clientY };
+      if (event.button === 1) event.preventDefault();
+      down =
+        event.button === 0
+          ? { x: event.clientX, y: event.clientY, dragged: false }
+          : null;
+    });
+    canvas.addEventListener("pointermove", (event) => {
+      if (
+        down &&
+        Math.hypot(event.clientX - down.x, event.clientY - down.y) > 5
+      )
+        down.dragged = true;
+    });
+    canvas.addEventListener("pointercancel", () => {
+      down = null;
+    });
+    canvas.addEventListener("auxclick", (event) => {
+      if (event.button === 1) event.preventDefault();
     });
     canvas.addEventListener("pointerup", (event) => {
+      const start = down;
+      down = null;
       if (
-        !down ||
-        Math.hypot(event.clientX - down.x, event.clientY - down.y) > 5
+        event.button !== 0 ||
+        !start ||
+        start.dragged ||
+        Math.hypot(event.clientX - start.x, event.clientY - start.y) > 5
       )
         return;
       const rect = canvas.getBoundingClientRect();
@@ -141,7 +169,6 @@ export class BuildingViewer {
           this.selectRoom(part.roomId, false);
         else onSelect(part);
       }
-      down = null;
     });
     canvas.addEventListener("keydown", (event) => {
       const offsets = {
@@ -193,6 +220,23 @@ export class BuildingViewer {
       code.textContent = room.id;
       name.textContent = room.name;
       button.append(code, name);
+      // Labels remain clickable with the left button; middle-drag passes through to pan.
+      button.addEventListener("pointerdown", (event) => {
+        if (event.button !== 1) return;
+        event.preventDefault();
+        this.canvas.dispatchEvent(
+          new PointerEvent("pointerdown", {
+            pointerId: event.pointerId,
+            pointerType: event.pointerType,
+            isPrimary: event.isPrimary,
+            button: event.button,
+            buttons: event.buttons,
+            clientX: event.clientX,
+            clientY: event.clientY,
+            cancelable: true,
+          }),
+        );
+      });
       button.onclick = () => this.selectRoom(room.id, false);
       this.labelLayer.append(button);
       this.labelButtons.push({ room, button });
@@ -253,6 +297,7 @@ export class BuildingViewer {
     this.controls.update();
     this.applyLayers();
     this.render();
+    this.onStateChange();
   }
   setFloor(floor) {
     this.floor = floor;
@@ -271,6 +316,7 @@ export class BuildingViewer {
     this[key] = value;
     this.applyLayers();
     this.render();
+    this.onStateChange();
   }
   applyLayers() {
     // Keep floor plans readable without tall columns casting shadows across rooms.

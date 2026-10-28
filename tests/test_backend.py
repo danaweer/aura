@@ -299,7 +299,7 @@ class HttpTests(unittest.TestCase):
         self.assertEqual(status, 200)
         catalog = json.loads(body)
         self.assertEqual(len(catalog['projects']), 2)
-        for route in ('/building-viewer.js', '/project-ui.js', '/vendor/three.module.js', '/vendor/three.core.js', '/vendor/OrbitControls.js', '/projects/meeting-room/model.js', '/projects/atrium-building/model.js', '/projects/atrium-building/layout.js', '/projects/atrium-building/interiors.js', '/projects/atrium-building/geometry.js', '/projects/atrium-building/architecture.js', '/projects/atrium-building/services.js', '/projects/atrium-building/visibility.js', '/projects/atrium-building/stairs.js'):
+        for route in ('/building-viewer.js', '/viewer-fullscreen.js', '/project-ui.js', '/vendor/three.module.js', '/vendor/three.core.js', '/vendor/OrbitControls.js', '/projects/meeting-room/model.js', '/projects/atrium-building/model.js', '/projects/atrium-building/layout.js', '/projects/atrium-building/interiors.js', '/projects/atrium-building/geometry.js', '/projects/atrium-building/architecture.js', '/projects/atrium-building/services.js', '/projects/atrium-building/visibility.js', '/projects/atrium-building/stairs.js'):
             self.assertEqual(self.request('GET', route)[0], 200, route)
         status, headers, _ = self.request('GET', '/projects/atrium-building/preview.svg')
         self.assertEqual(status, 200)
