@@ -8,6 +8,24 @@ export function applyBuildingVisibility(model, state) {
   model.floors.forEach((floor, index) => {
     floor.visible = !isolated || index === Number(state.floor);
   });
+  model.egress?.signs.forEach((part) => {
+    part.visible = state.egressSigns !== false;
+  });
+  model.egress?.routes.forEach((part) => {
+    part.visible = !!state.egressPaths && !model.egress.current;
+  });
+  model.egress?.selected.forEach((part) => {
+    part.visible = !!state.egressPaths;
+  });
+  if (model.egress) {
+    const ground = !isolated || state.floor === "0";
+    model.egress.outdoorSigns.visible =
+      ground && state.egressSigns !== false && !interior;
+    model.egress.outdoorRoutes.visible = ground && !!state.egressPaths;
+    for (const child of model.egress.outdoorRoutes.children)
+      child.visible =
+        child === model.egress.selectedOutdoor || !model.egress.current;
+  }
   model.roof.visible = state.roof && !opened;
   model.yard.visible = state.services && (!isolated || state.floor === "0");
   model.architecture.facades.forEach(({ exterior }) => {

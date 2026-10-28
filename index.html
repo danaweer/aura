@@ -304,6 +304,55 @@
                     Service reserves</label
                   >
                 </div>
+                <div id="egressOptions" class="egress-options" hidden>
+                  <div class="egress-actions">
+                    <button id="egressPlanBtn" type="button">
+                      Exit sign plan
+                    </button>
+                    <label
+                      ><input id="egressSignsToggle" type="checkbox" checked />
+                      Exit signs</label
+                    >
+                    <label
+                      ><input id="egressPathsToggle" type="checkbox" /> Route
+                      overlay</label
+                    >
+                    <select
+                      id="egressSignSelect"
+                      aria-label="Inspect exit and stair-direction signs"
+                    >
+                      <option value="">Inspect an exit or stair sign…</option>
+                    </select>
+                    <button id="traceExitBtn" type="button" disabled>
+                      Trace selected room to site edge
+                    </button>
+                    <button id="clearExitTraceBtn" type="button" hidden>
+                      Show all routes
+                    </button>
+                  </div>
+                  <p id="egressRouteInfo" role="status">
+                    57 scheduled sign positions · PDF Rev E01. Select a room to
+                    trace its doorway-to-discharge route.
+                  </p>
+                  <p class="egress-legend">
+                    <span class="route-key wing">━━</span> Wing → stair → ground
+                    <span class="route-key atrium">┄┄</span> Atrium route,
+                    subject to strategy
+                    <span class="route-key outside">┄┄</span> Assumed
+                    outdoor/public-way continuation
+                  </p>
+                  <p class="egress-basis">
+                    Concept only. Public-way connection, exit suitability,
+                    emergency power and accessible evacuation need verification.
+                    The lift and central stair are excluded.
+                    <a
+                      href="/projects/atrium-building/reference/means-of-egress-e01.pdf"
+                      target="_blank"
+                      rel="noopener"
+                      >Source PDF ↗</a
+                    >
+                  </p>
+                </div>
                 <div
                   class="scene"
                   id="scene"
@@ -333,6 +382,14 @@
                     class="building-labels"
                     aria-label="Office and service-room labels"
                   ></div>
+                  <div
+                    id="egressLabels"
+                    class="building-labels egress-labels"
+                    aria-label="Exit sign schedule positions"
+                  ></div>
+                  <div id="egressEndpoint" class="egress-endpoint" hidden>
+                    ASSUMED PUBLIC-WAY CONNECTION · VERIFY SITE
+                  </div>
                   <div
                     id="buildingStatus"
                     class="building-status"

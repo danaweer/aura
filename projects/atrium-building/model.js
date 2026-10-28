@@ -1,3 +1,4 @@
+import { createEgress } from "./egress.js";
 /* Existing reference building, coordinated to the supplied 40 × 24 m office plans. */
 import * as THREE from "three";
 import { ENVELOPE, FLOORS, ALL_ROOMS, CORRIDORS } from "./layout.js";
@@ -655,7 +656,9 @@ export function createAtriumBuilding() {
       mesh.name = mesh.userData.label;
       parent.add(mesh);
     }
+  const egress = createEgress({ root, floors, stairCores });
   return {
+    egress,
     root,
     floors,
     roof,

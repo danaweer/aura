@@ -945,6 +945,7 @@ async function activateProject(project) {
   $("buildingFooter").hidden = roomProject;
   $("buildingOptions").hidden = roomProject;
   $("interiorOptions").hidden = roomProject;
+  $("egressOptions").hidden = roomProject;
   canvas.hidden = !roomProject;
   $("buildingCanvas").hidden = roomProject;
   scene.classList.toggle("building-scene", !roomProject);
@@ -1042,6 +1043,22 @@ async function activateProject(project) {
                 : part.floor === 0
                   ? "Ground floor"
                   : `Level 0${part.floor}`;
+            if (part.kind === "egress-sign") {
+              $("egressSignSelect").value = part.assetId;
+              const faces =
+                part.text ||
+                part.faces
+                  ?.map((face) =>
+                    face.arrow === "EXIT"
+                      ? "EXIT over door"
+                      : `EXIT ${face.arrow.toLowerCase()} for its approach`,
+                  )
+                  .join("; ");
+              $("buildingPartInfo").textContent =
+                `${level} · ${part.supplemental ? "Supplemental identification" : "PDF sign " + part.scheduleId} · PDF p.${part.sourcePage}. ${part.mount}. ${faces || ""}. ${part.destination}. ${part.conditional ? "Conditional: requires atrium/site strategy verification. " : ""}${part.adaptation || ""} ${part.restriction || ""} Model sign; emergency power/visibility are not verified.`;
+              updateBuildingControls();
+              return;
+            }
             if (part.roomId && buildingViewer) {
               const space = buildingViewer.model.rooms.find(
                 (item) => item.id === part.roomId,
@@ -1109,8 +1126,21 @@ function updateBuildingControls() {
     ["roomLabelsToggle", "labels"],
     ["ceilingsToggle", "ceilings"],
     ["systemsToggle", "systems"],
+    ["egressSignsToggle", "egressSigns"],
+    ["egressPathsToggle", "egressPaths"],
   ])
     $(id).checked = state[key];
+  const chosenRoom = state.model.rooms.find(
+    (room) => room.id === $("roomSelect").value,
+  );
+  $("traceExitBtn").disabled =
+    !chosenRoom ||
+    ["lift", "central-stair", "riser"].includes(chosenRoom.furniture);
+  const route = state.model.egress.current;
+  $("clearExitTraceBtn").hidden = !route;
+  $("egressRouteInfo").textContent = route
+    ? `${route.roomId} doorway → ${route.exteriorOnly ? "dedicated exterior exit" : `Stair ${route.side < 0 ? "A" : "B"} → ground side exit`} → assumed public-way connection. ${route.conditional ? "Includes a conditional atrium or exterior leg. " : ""}All floors shows the descent; isolate a floor to inspect its leg.`
+    : "57 scheduled positions · PDF Rev E01. Select a room to trace its doorway-to-discharge route.";
   $("floorPurpose").textContent =
     state.floor === "all"
       ? "Three furnished floors · Ground, teams, leadership"
@@ -1167,11 +1197,23 @@ for (const [id, key] of [
   ["roomLabelsToggle", "labels"],
   ["ceilingsToggle", "ceilings"],
   ["systemsToggle", "systems"],
+  ["egressSignsToggle", "egressSigns"],
+  ["egressPathsToggle", "egressPaths"],
 ])
   $(id).onchange = (event) => {
     buildingViewer?.setLayer(key, event.target.checked);
     updateBuildingControls();
   };
+$("egressPlanBtn").onclick = () => buildingViewer?.showExitPlan();
+$("egressSignSelect").onchange = (event) => {
+  if (event.target.value) buildingViewer?.selectSign(event.target.value);
+};
+$("traceExitBtn").onclick = () =>
+  buildingViewer?.traceExit($("roomSelect").value);
+$("clearExitTraceBtn").onclick = () => {
+  buildingViewer?.model.egress.trace(null);
+  buildingViewer?.setLayer("egressPaths", true);
+};
 $("reloadBuilding").onclick = () => location.reload();
 const viewerFullscreen = new ViewerFullscreen({
   root: $("viewerPanel"),
@@ -1183,6 +1225,7 @@ const viewerFullscreen = new ViewerFullscreen({
   controls: [
     $("buildingOptions"),
     $("interiorOptions"),
+    $("egressOptions"),
     $("roomSelect").closest(".room-navigator"),
     $("buildingPartTitle").closest(".building-part"),
   ],

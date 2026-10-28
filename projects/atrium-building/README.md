@@ -39,3 +39,10 @@ The ground fire-pump, water/mechanical, electrical and server/UPS rooms, upper A
 - The conventional 1.4 m entrance is alongside the retained revolving door. The site assumes level ground at the entrance datum and a roughly 51 × 42 m paved setting, without a site survey or boundary information. Landscaping and furniture stay outside the central approach and rear service-door access. Site drainage and real accessible gradients must be coordinated later.
 
 This is an architectural and systems concept, not construction documentation or a code-certified design. No fire protection, pump/sprinkler network or new IoT integration has been installed. The existing MXCHIP stays with the preserved meeting-room project.
+
+## Exit wayfinding
+
+The **Exit sign plan** follows the supplied Means of Egress PDF Rev E01: 57 scheduled positions across three floors, supplemental stair/non-exit identification, per-face directional signs and optional doorway-to-discharge paths. **Trace selected room to site edge** shows the real stair descent and a clearly assumed outdoor continuation. See [EGRESS.md](EGRESS.md) for the mapping, actual side-door adaptation, assumptions and verification. The original PDF is archived in `reference/means-of-egress-e01.pdf` and linked from the viewer.
+
+- `egress-plan.js`: PDF sign IDs, viewer-relative chevrons, actual room-door routes and stair-descent coordinates.
+- `egress.js`: physical sign cases/faces and independent route-overlay groups; no new dependencies or telemetry assignments.

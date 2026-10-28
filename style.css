@@ -2031,3 +2031,137 @@ body.viewer-expanded {
     display: none;
   }
 }
+
+/* PDF sign schedule and route inspection use their own layer, independent of room labels. */
+.egress-options {
+  padding: 10px 16px;
+  background: #f3f8f4;
+  border-bottom: 1px solid #d3e2d8;
+  color: #24433b;
+  font-size: 11px;
+}
+.egress-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+}
+.egress-actions label {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+}
+.egress-actions button,
+.egress-actions select {
+  padding: 6px 9px;
+  border: 1px solid #b9cfc3;
+  border-radius: 5px;
+  background: white;
+  color: #24433b;
+  font: inherit;
+  max-width: 100%;
+}
+.egress-actions button:not(:disabled) {
+  cursor: pointer;
+}
+.egress-options p {
+  margin: 7px 0 0;
+  line-height: 1.5;
+}
+.egress-basis {
+  color: #667568;
+  font-size: 10px;
+}
+.route-key {
+  font-weight: 800;
+  margin-left: 6px;
+}
+.route-key.wing {
+  color: #039755;
+}
+.route-key.atrium {
+  color: #168ebd;
+}
+.route-key.outside {
+  color: #b77d22;
+}
+.egress-label {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  pointer-events: auto;
+  background: #086a45;
+  color: white;
+  border: 1px solid #fff;
+  box-shadow: 0 1px 3px #233a3b66;
+  border-radius: 3px;
+  padding: 3px 4px;
+  font:
+    700 9px ui-sans-serif,
+    sans-serif;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.egress-label:hover,
+.egress-label:focus-visible {
+  background: #123c2c;
+  outline: 2px solid #eab65c;
+  z-index: 3;
+}
+.egress-endpoint {
+  position: absolute;
+  z-index: 4;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  padding: 4px 7px;
+  border: 1px dashed #b77d22;
+  border-radius: 3px;
+  color: #654312;
+  background: #fff8e9ed;
+  font-size: 9px;
+  font-weight: 700;
+  max-width: 210px;
+  text-align: center;
+}
+.fullscreen-controls .egress-options {
+  padding: 12px 0;
+}
+.fullscreen-controls .egress-actions {
+  align-items: stretch;
+}
+.fullscreen-controls .egress-actions > button,
+.fullscreen-controls .egress-actions > select {
+  width: 100%;
+}
+/* Separate the two decisions at each tight main/front/rear corridor junction. */
+.egress-label[data-sign-id$="-05"],
+.egress-label[data-sign-id$="-06"] {
+  transform: translate(-50%, -100%) translateY(-3px);
+}
+.egress-label[data-sign-id="G-20"],
+.egress-label[data-sign-id="G-21"],
+.egress-label[data-sign-id="1-17"],
+.egress-label[data-sign-id="1-18"],
+.egress-label[data-sign-id="2-17"],
+.egress-label[data-sign-id="2-18"] {
+  transform: translate(-50%, 0) translateY(3px);
+}
+.fullscreen-controls .egress-options {
+  background: transparent;
+  color: #c1dbd1;
+  border-color: #304554;
+}
+.fullscreen-controls .egress-actions button,
+.fullscreen-controls .egress-actions select {
+  background: #17313e;
+  color: #d5eee6;
+  border-color: #365665;
+}
+.fullscreen-controls .egress-basis {
+  color: #a1b9b0;
+}
+.egress-basis a {
+  color: inherit;
+  text-underline-offset: 2px;
+  white-space: nowrap;
+}

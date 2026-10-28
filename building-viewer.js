@@ -25,6 +25,10 @@ export class BuildingViewer {
     this.labels = true;
     this.ceilings = true;
     this.systems = true;
+    this.egressSigns = true;
+    this.egressPaths = false;
+    this.egressLabelLayer = document.getElementById("egressLabels");
+    this.egressLabelButtons = [];
     this.onSelect = onSelect;
     this.onStateChange = onStateChange;
     this.labelLayer = document.getElementById("buildingLabels");
@@ -162,7 +166,8 @@ export class BuildingViewer {
         const part =
           hit.object.userData.instances?.[hit.instanceId] ||
           hit.object.userData;
-        if (
+        if (part.kind === "egress-sign") this.selectSign(part.assetId, false);
+        else if (
           part.roomId &&
           this.model.rooms.some((room) => room.id === part.roomId)
         )
@@ -254,6 +259,74 @@ export class BuildingViewer {
       this.labelLayer.append(element);
       this.planNotes.push({ x, z, label, element });
     }
+    for (const sign of this.model.egress.allSigns.filter(
+      (sign) => sign.scheduleId,
+    )) {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "egress-label";
+      button.dataset.signId = sign.scheduleId;
+      const travel = sign.faces.find((face) => face.travel)?.travel;
+      const arrow = !travel
+        ? ""
+        : travel[0] < 0
+          ? "←"
+          : travel[0] > 0
+            ? "→"
+            : travel[1] < 0
+              ? "↑"
+              : "↓";
+      button.textContent = `${sign.scheduleId} EXIT ${arrow}`;
+      button.title = `${sign.label} · PDF p.${sign.sourcePage}`;
+      button.setAttribute("aria-label", sign.label);
+      button.onclick = () => this.selectSign(sign.assetId, false);
+      button.addEventListener("pointerdown", (event) => {
+        if (event.button !== 1) return;
+        event.preventDefault();
+        this.canvas.dispatchEvent(
+          new PointerEvent("pointerdown", {
+            pointerId: event.pointerId,
+            pointerType: event.pointerType,
+            isPrimary: event.isPrimary,
+            button: 1,
+            buttons: event.buttons,
+            clientX: event.clientX,
+            clientY: event.clientY,
+            cancelable: true,
+          }),
+        );
+      });
+      this.egressLabelLayer.append(button);
+      this.egressLabelButtons.push({ sign, button });
+    }
+    const select = document.getElementById("egressSignSelect");
+    for (let f = 0; f < 3; f++) {
+      const options = document.createElement("optgroup");
+      options.dataset.schedule = "pdf";
+      options.label = [
+        "Ground · 21 positions",
+        "First · 18 positions",
+        "Second · 18 positions",
+      ][f];
+      for (const sign of this.model.egress.allSigns.filter(
+        (sign) => sign.scheduleId && sign.floor === f,
+      ))
+        options.append(new Option(sign.label, sign.assetId));
+      select.append(options);
+    }
+    const stairSigns = document.createElement("optgroup");
+    stairSigns.label = "Stair directions · each occupied floor";
+    stairSigns.dataset.schedule = "stair";
+    for (const sign of this.model.egress.allSigns.filter(
+      (sign) => sign.pictogram,
+    ))
+      stairSigns.append(
+        new Option(
+          `${sign.label} · ${sign.floor ? "down to ground" : "exit to outside"}`,
+          sign.assetId,
+        ),
+      );
+    select.append(stairSigns);
     this.setView("overview");
   }
   resize() {
@@ -269,6 +342,8 @@ export class BuildingViewer {
   setActive(active) {
     this.active = active;
     this.labelLayer.hidden = !active;
+    this.egressLabelLayer.hidden = !active;
+    if (!active) document.getElementById("egressEndpoint").hidden = true;
     this.controls.enabled = active;
     if (active) this.resize();
   }
@@ -285,8 +360,16 @@ export class BuildingViewer {
       view === "plan" ? Number(this.floor) * FLOOR_HEIGHT : y,
       0,
     );
-    if (view === "plan") this.camera.position.set(0, y + 70, 0.01);
-    else if (view === "offices") this.camera.position.set(34, y + 42, 47);
+    if (view === "plan") {
+      const planY = Number(this.floor) * FLOOR_HEIGHT;
+      const routePlan = this.egressPaths;
+      this.controls.target.set(0, planY, routePlan ? 3.5 : 0);
+      this.camera.position.set(
+        0,
+        planY + (routePlan ? 83 : 71.5),
+        routePlan ? 3.51 : 0.01,
+      );
+    } else if (view === "offices") this.camera.position.set(34, y + 42, 47);
     else if (view === "atrium") this.camera.position.set(19, y + 16, 29);
     else if (view === "front") this.camera.position.set(0, 22, 79);
     else if (view === "rear") this.camera.position.set(29, 25, -70);
@@ -366,6 +449,50 @@ export class BuildingViewer {
     });
     this.render();
   }
+  selectSign(id, focus = true) {
+    const sign = this.model.egress.allSigns.find((s) => s.assetId === id);
+    if (!sign) return;
+    this.egressSigns = true;
+    this.setFloor(String(sign.floor));
+    if (focus) {
+      this.view = "offices";
+      const n = sign.faces[0].normal;
+      this.controls.target.set(sign.x, sign.y, sign.z);
+      this.camera.position.set(
+        sign.x + n[0] * 12,
+        sign.y + 3.5,
+        sign.z + n[1] * 12,
+      );
+      this.controls.update();
+    }
+    this.onSelect(sign);
+    this.applyLayers();
+    this.render();
+    this.onStateChange();
+  }
+  showExitPlan() {
+    this.egressSigns = true;
+    this.egressPaths = true;
+    this.labels = false;
+    this.lowWalls = true;
+    this.model.egress.trace(null);
+    this.setView("plan");
+  }
+  traceExit(roomId) {
+    const route = this.model.egress.trace(roomId);
+    if (!route) return;
+    this.egressSigns = true;
+    this.egressPaths = true;
+    this.labels = false;
+    this.cutaway = true;
+    this.floor = "all";
+    this.setView("atrium");
+    this.controls.target.set(0, 4, 3);
+    this.camera.position.set(route.side * 42, 34, 62);
+    this.controls.update();
+    this.render();
+    return route;
+  }
   zoom(factor) {
     const offset = this.camera.position.clone().sub(this.controls.target);
     offset.multiplyScalar(factor).clampLength(12, 120);
@@ -424,6 +551,43 @@ export class BuildingViewer {
       note.element.style.left = `${((point.x + 1) / 2) * width}px`;
       note.element.style.top = `${((-point.y + 1) / 2) * height}px`;
     }
+    for (const { sign, button } of this.egressLabelButtons) {
+      const point = new THREE.Vector3(
+        sign.x,
+        sign.floor * FLOOR_HEIGHT + 0.16,
+        sign.z,
+      ).project(this.camera);
+      button.hidden = !(
+        this.egressSigns &&
+        this.view === "plan" &&
+        String(sign.floor) === this.floor &&
+        Math.abs(point.x) < 0.98 &&
+        Math.abs(point.y) < 0.97 &&
+        point.z > -1 &&
+        point.z < 1
+      );
+      button.style.left = `${((point.x + 1) / 2) * width}px`;
+      button.style.top = `${((-point.y + 1) / 2) * height}px`;
+    }
+    const endpoint = document.getElementById("egressEndpoint");
+    const currentRoute = this.model.egress.current;
+    const endpointX = currentRoute ? currentRoute.side * 21.05 : 2.65;
+    const endpointPoint = new THREE.Vector3(endpointX, 0.2, 22).project(
+      this.camera,
+    );
+    endpoint.hidden = !(
+      this.egressPaths &&
+      ["all", "0"].includes(this.floor) &&
+      Math.abs(endpointPoint.x) < 0.9 &&
+      Math.abs(endpointPoint.y) < 0.94 &&
+      endpointPoint.z > -1 &&
+      endpointPoint.z < 1
+    );
+    endpoint.style.left = `${((endpointPoint.x + 1) / 2) * width}px`;
+    endpoint.style.top = `${((-endpointPoint.y + 1) / 2) * height}px`;
+    this.canvas.dataset.egressSigns = String(this.egressSigns);
+    this.canvas.dataset.egressPaths = String(this.egressPaths);
+    this.canvas.dataset.egressTrace = currentRoute?.roomId || "";
     this.canvas.dataset.ready = "true";
     this.canvas.dataset.floor = String(this.floor);
     this.canvas.dataset.view = this.view;

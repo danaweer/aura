@@ -429,6 +429,161 @@ try {
     path: path.join(root, "test-results", "building-desktop.png"),
     fullPage: true,
   });
+  // PDF Rev E01 schedule, physical boards, floor-specific overlays and complete stair descent.
+  await expect(
+    page.locator("#egressSignSelect optgroup[data-schedule='pdf'] option"),
+  ).toHaveCount(57);
+  await page.locator("#egressPlanBtn").click();
+  await expect(page.locator("#roomLabelsToggle")).not.toBeChecked();
+  for (const [floor, count] of [
+    ["0", 21],
+    ["1", 18],
+    ["2", 18],
+  ]) {
+    await page.locator("#floorSelect").selectOption(floor);
+    await expect(page.locator("#egressLabels button:visible")).toHaveCount(
+      count,
+    );
+    await page.locator("#scene").screenshot({
+      path: path.join(root, "test-results", `egress-plan-${floor}.png`),
+    });
+  }
+  await page.locator('#egressLabels button[data-sign-id="2-15"]').click();
+  await expect(page.locator("#buildingPartTitle")).toContainText("2-15");
+  await expect(page.locator("#buildingPartInfo")).toContainText("PDF p.9");
+  await expect(page.locator("#buildingPartInfo")).toContainText(
+    "Room side above corridor door",
+  );
+  // Inspect the formerly crossed cabinets from a small oblique angle.
+  const systemsBeforeSignInspection = await page
+    .locator("#systemsToggle")
+    .isChecked();
+  await page.locator("#systemsToggle").uncheck();
+  await page.locator("#egressPathsToggle").uncheck();
+  for (const id of ["2-09", "2-10", "2-01", "2-02"]) {
+    await page.locator("#egressSignSelect").selectOption(`EGRESS-${id}`);
+    await expect(page.locator("#buildingPartTitle")).toContainText(id);
+    const box = await page.locator("#buildingCanvas").boundingBox();
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+    await page.mouse.down({ button: "left" });
+    await page.mouse.move(box.x + box.width / 2 + 30, box.y + box.height / 2, {
+      steps: 4,
+    });
+    await page.mouse.up({ button: "left" });
+    await page.locator("#scene").screenshot({
+      path: path.join(root, "test-results", `egress-single-sign-${id}.png`),
+    });
+  }
+  await expect(
+    page.locator("#egressSignSelect optgroup[data-schedule='stair'] option"),
+  ).toHaveCount(6);
+  for (const stair of ["A", "B"])
+    for (const floor of ["0", "1", "2"]) {
+      const id = `EGRESS-STAIR-${stair}-${floor}`;
+      await page.locator("#egressSignSelect").selectOption(id);
+      await expect(page.locator("#floorSelect")).toHaveValue(floor);
+      await expect(page.locator("#buildingPartTitle")).toContainText(
+        `Stair ${stair}`,
+      );
+      await expect(page.locator("#buildingPartInfo")).toContainText(
+        floor === "0" ? "SIDE DOOR" : "DOWN TO GROUND",
+      );
+      await page.locator("#scene").screenshot({
+        path: path.join(
+          root,
+          "test-results",
+          `stair-pictogram-${stair}-${floor}-3d.png`,
+        ),
+      });
+      // Export the same code-drawn face used by the 3D cabinet for visual review.
+      const png = await page.evaluate(async (assetId) => {
+        const { drawStairPictogram } =
+          await import("/projects/atrium-building/egress.js");
+        const { SUPPLEMENTAL_SIGNS } =
+          await import("/projects/atrium-building/egress-plan.js");
+        const sign = SUPPLEMENTAL_SIGNS.find((s) => s.assetId === assetId);
+        const canvas = document.createElement("canvas");
+        canvas.width = 1024;
+        canvas.height = 576;
+        drawStairPictogram(canvas.getContext("2d"), sign);
+        return canvas.toDataURL("image/png").split(",")[1];
+      }, id);
+      await writeFile(
+        path.join(
+          root,
+          "test-results",
+          `stair-pictogram-${stair}-${floor}.png`,
+        ),
+        Buffer.from(png, "base64"),
+      );
+    }
+  console.log(
+    "PASS Pictographic stair guidance on all six occupied landings, floor selection and ground discharge direction",
+  );
+  if (systemsBeforeSignInspection) await page.locator("#systemsToggle").check();
+  await page.locator("#egressPathsToggle").check();
+  await page.locator("#egressSignSelect").selectOption("EGRESS-G-14");
+  await expect(page.locator("#floorSelect")).toHaveValue("0");
+  await expect(page.locator("#buildingPartInfo")).toContainText(
+    "actual side-wall door",
+  );
+  await page.locator("#scene").screenshot({
+    path: path.join(root, "test-results", "egress-stair-discharge-sign.png"),
+  });
+  await page.locator("#egressSignsToggle").uncheck();
+  await expect(page.locator("#buildingCanvas")).toHaveAttribute(
+    "data-egress-signs",
+    "false",
+  );
+  await page.locator("#egressSignsToggle").check();
+  await page.locator("#roomSelect").selectOption("L2-01");
+  await page.locator("#traceExitBtn").click();
+  await expect(page.locator("#buildingCanvas")).toHaveAttribute(
+    "data-egress-trace",
+    "L2-01",
+  );
+  await expect(page.locator("#floorSelect")).toHaveValue("all");
+  await expect(page.locator("#egressRouteInfo")).toContainText(
+    "Stair A → ground side exit",
+  );
+  await expect(page.locator("#egressRouteInfo")).toContainText(
+    "assumed public-way connection",
+  );
+  await page.locator("#fullscreenBtn").click();
+  await expect(
+    page.locator("#fullscreenControls #egressOptions"),
+  ).toBeVisible();
+  await page.screenshot({
+    path: path.join(root, "test-results", "egress-ceo-to-site-edge.png"),
+  });
+  await page.locator("#egressPathsToggle").uncheck();
+  await expect(page.locator("#buildingCanvas")).toHaveAttribute(
+    "data-egress-paths",
+    "false",
+  );
+  await page.locator("#egressPathsToggle").check();
+  await page.locator("#fullscreenBtn").click();
+  await page.locator("#roomSelect").selectOption("L1-C01");
+  await expect(page.locator("#traceExitBtn")).toBeDisabled();
+  await page.locator("#roomSelect").selectOption("G-M01");
+  await page.locator("#traceExitBtn").click();
+  await expect(page.locator("#egressRouteInfo")).toContainText(
+    "dedicated exterior exit",
+  );
+  await page.locator("#egressPlanBtn").click();
+  await page.locator("#floorSelect").selectOption("0");
+  await page.locator("#fullscreenBtn").click();
+  await page.locator("#egressOptions").scrollIntoViewIfNeeded();
+  await page.screenshot({
+    path: path.join(root, "test-results", "egress-ground-fullscreen.png"),
+  });
+  await page.locator("#fullscreenBtn").click();
+  await page.locator("#egressPathsToggle").uncheck();
+  await page.locator("#roomLabelsToggle").check();
+  await page.locator("#isoBtn").click();
+  console.log(
+    "PASS PDF's 57 scheduled signs, sign inspection, route tracing, floor isolation, fullscreen layers and exclusion of lift evacuation",
+  );
   await page.locator("#cutawayToggle").check();
   await page.locator("#atriumBtn").click();
   await page.screenshot({
