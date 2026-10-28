@@ -65,8 +65,9 @@ test("new building has no assigned IoT, and future systems remain planned", () =
   assert.equal(building.model.dimensions_verified, false);
   assert.deepEqual(building.iot, []);
   assert.ok(
-    building.phases.slice(2).every((phase) => phase.status === "planned"),
+    building.phases.slice(3).every((phase) => phase.status === "planned"),
   );
+  assert.match(building.phases[2].status, /concept modeled/);
   assert.equal(room.iot[0].scope, "meeting-room");
   assert.equal(room.iot[0].binding, "mxchip");
 });

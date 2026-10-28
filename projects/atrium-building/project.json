@@ -3,8 +3,8 @@
   "name": "Atrium building / 01",
   "code": "AB-01",
   "category": "Furnished office building",
-  "description": "Your supplied three-floor office layouts, furnished inside the existing glazed building: ground-floor reception and public rooms, team offices on level 01, and leadership spaces on level 02. Plant rooms, risers and service routes are reserved for the next stage.",
-  "stage": "02 \u00b7 Offices + furniture",
+  "description": "Three retained furnished floors within a coordinated stone-and-charcoal exterior: private bathroom/service façades, solid wing roofs, a glazed atrium, CEO and boardroom balconies, and a landscaped level entrance. Rooftop equipment and connected ceiling air paths are conceptual reservations; detailed engineering and fire systems remain future work.",
+  "stage": "03 · Architecture + concept services",
   "preview": "/projects/atrium-building/preview.svg",
   "model": {
     "kind": "atrium-building",
@@ -14,7 +14,9 @@
     "depth_m": 24,
     "dimensions_verified": false,
     "interior_revision": "A",
-    "layout_source": "Supplied schematic office concept plans"
+    "layout_source": "Supplied schematic office concept plans",
+    "exterior_source": "Existing model dimensions; attached exterior image used for visual character only",
+    "services_status": "Connected conceptual air routes and rooftop placeholders; not sized or commissioned"
   },
   "requirements": [
     {
@@ -27,11 +29,15 @@
     },
     {
       "name": "Plant rooms, wet/dry/HVAC risers and corridor service zones",
-      "status": "reserved; equipment not installed"
+      "status": "retained; conceptual air routes use existing east HVAC shaft and a separate west external chase"
     },
     {
       "name": "MEP networks, fire protection, sizing and original-building coordination",
       "status": "next stage"
+    },
+    {
+      "name": "Opaque private/service façades, solid roofs, ceiling layers, balconies and site",
+      "status": "concept modeled; dimensions and engineering assumptions documented"
     }
   ],
   "iot": [],
@@ -42,11 +48,11 @@
     },
     {
       "name": "Offices and furniture",
-      "status": "current"
+      "status": "established"
     },
     {
       "name": "HVAC and ventilation",
-      "status": "planned"
+      "status": "concept modeled; detailed design planned"
     },
     {
       "name": "Fire detection and alarm",

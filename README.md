@@ -12,7 +12,7 @@ Use **Projects** in the navigation or the header to see both saved models. Openi
 
 The original room's geometry is preserved in **`projects/meeting-room/model.js`**, with its saved configuration in `room.json` and requirements/device metadata in `project.json`. Its furniture, camera controls, MXCHIP telemetry, demonstration alarm, SQLite history, and CSV export remain available in that project. `--room-config` continues to override the meeting-room configuration.
 
-The building is in **`projects/atrium-building/`**. It now includes the supplied revision A office plans: ground-floor arrival and public functions, first-floor teams and collaboration, and second-floor leadership and boardroom. There are 52 named rooms plus stairs, cores and risers across three occupiable floors, with an unoccupied glazed roof. The existing white frame, blue-green glazing, sloping glazed crowns, central atrium, galleries, stairs, lift core and revolving entrance are retained and adapted to the plans.
+The building is in **`projects/atrium-building/`**. It retains the revision A office plans: ground-floor arrival and public functions, first-floor teams and collaboration, and second-floor leadership and boardroom. There are 52 named rooms plus stairs, cores and risers across exactly three occupiable floors. Warm stone cladding encloses bathrooms, stairs and service spaces; framed office windows, wood-look accents and opaque floor bands complete the exterior. Both wings have solid roofs, with glazing retained above the central atrium. Second-floor balconies serve the existing CEO office and boardroom. The entrance and site include level paving, a conventional entrance beside the revolving door, a canopy, identification, planting, benches, bicycle parking and path lights.
 
 The office geometry follows the plans' **40 × 24 m working envelope**, with two 15 m wings, a 10 m central zone, and 2.4 m main corridors. Front is +Z; it does not indicate geographic north. Floor elevations remain 0, 4.2 and 8.4 m. This is a schematic model: the plans do not establish surveyed dimensions, detailed stair geometry, structural coordination or an installation design. The phase-one shell is saved in `projects/atrium-building/archive/shell-v1.js`.
 
@@ -20,14 +20,16 @@ Building controls:
 
 - Drag to orbit through 360°, scroll to zoom, or use the view/zoom buttons. Right-drag pans; touch gestures are supported.
 - Select **Ground floor**, **Level 01**, or **Level 02** to isolate a floor. **Whole building** restores all three.
+- The inspection-view selector includes **Finished exterior**, **Front / arrival**, **Rear / services**, **Left side**, **Right side** and **Roof inspection**.
 - **Office cutaway** opens a furnished floor; **Top** shows its plan. **Low walls** exposes furniture while preserving the room boundaries; turn it off to see full-height partitions.
 - **Find a room** or a room label selects its location, ID, area, capacity and design notes. Furniture, partitions and labels can be toggled independently.
 - **Service reserves** shows empty plant/IT reserves, aligned shaft compartments, corridor ceiling-route allowances and an empty rear service-yard reservation. These volumes represent coordination space, not installed equipment.
 - **Atrium view** opens the front and roof to inspect the galleries, stairs, and lift core.
-- **Cutaway**, **Glazing**, and **Roof** control architectural visibility. Interior and individual-floor views automatically hide the roof.
+- **Roofs** and **Ceilings** are separate layers. Interior and individual-floor views automatically hide both. Hidden objects are excluded from selection raycasts through their full ancestor chain.
+- **Concept services** toggles rooftop equipment placeholders and connected air routes: blue supply, sage return and amber sanitary exhaust. Outdoor cooling units and outdoor-air intakes have distinct roles. Suspended ceilings, lights and maintenance panels are separate from structural slabs.
 - Click a room, furniture item or structural element to inspect it. Keyboard arrows orbit, +/− zoom, and Home restores the overview.
 
-The building has **zero assigned IoT devices**. The MXCHIP remains assigned to the meeting room; switching models does not move its readings into the building. Requirements and a roadmap are stored with each project. Architecture and office furnishing are established. HVAC, fire detection, pump/sprinkler equipment, piping and IoT/BMS integration remain planned. Ground-floor fire pump, water/mechanical, electrical and server/UPS rooms, upper-floor AHU rooms, IDF spaces and risers are reserved without fitted equipment. Toilets and pantries align vertically; BMS/security has operator furniture only.
+The building has **zero assigned IoT devices**. The MXCHIP remains assigned to the meeting room; switching models does not move its readings into the building. HVAC routes and rooftop equipment are now modeled conceptually. Detailed HVAC engineering, fire detection, pump/sprinkler equipment, water piping and IoT/BMS integration remain planned. Existing ground-floor fire pump, water/mechanical, electrical and server/UPS rooms, upper-floor AHU rooms and IDF spaces remain reserved without fitted equipment. Toilets and pantries remain vertically aligned; BMS/security has operator furniture only. The east air routes use the existing HVAC shaft; a separate external west chase avoids consuming the wet-service reserve. See [model assumptions](projects/atrium-building/README.md) for roof, balcony, drainage and site assumptions.
 
 ## Run on macOS or Linux
 
@@ -132,7 +134,7 @@ The inspector shows MXCHIP telemetry only for the sensor. The alarm view shows i
 | `project-ui.js`, `projects.py` | Project cards, navigation, metadata and catalog API |
 | `building-viewer.js` | WebGL camera, model selection, floor and layer controls |
 | `projects/meeting-room/` | Preserved room model, configuration, manifest and preview |
-| `projects/atrium-building/` | Architecture, office-layout data, furniture geometry, manifest, preview and original shell archive |
+| `projects/atrium-building/` | Original room-layout data, architecture, services, reusable geometry, layer visibility, manifest, preview and original shell archive |
 | `vendor/` | Locally served, pinned Three.js and OrbitControls modules |
 | `index.html`, `style.css` | Accessible page structure, responsive layout, styling |
 | `room.example.json` | Example room and sensor configuration |
@@ -154,9 +156,9 @@ npm run format:check
 npm run test:browser
 ```
 
-Python tests cover register decoding, invalid data, firmware fallback, stale/frozen samples, offline history, SQLite persistence, CLI validation, HTTP endpoints, and SSE replay. JavaScript tests also check room tiling and areas, corridor widths, vertical service alignment, furniture capacities, empty reserves, door openings and upper-floor slab openings, as well as the three-floor structure, preserved room and telemetry behavior.
+Python tests cover register decoding, invalid data, firmware fallback, stale/frozen samples, offline history, SQLite persistence, CLI validation, HTTP endpoints, and SSE replay. JavaScript tests additionally check actual opaque bathroom walls, balcony portal and furniture clearances, roof openings, service continuity, structure and maintenance-route clashes, external door access, ceiling/roof isolation and hidden-object picking, alongside the retained room-layout and telemetry checks.
 
-Browser checks start an isolated demo server and database, verify the three furnished floor plans, room navigation, interior layers, service reserves, atrium and glazing, project switching and IoT isolation, then exercise the original room’s alarm, history, reconnection, inspectors and keyboard controls. Desktop/mobile screenshots and each floor's plan are saved under `test-results/`. On macOS the test uses installed Google Chrome. On other systems, first run `npx playwright install chromium`. Set `PYTHON_BIN` if your Python interpreter is not at `.venv/bin/python` (`.venv/Scripts/python.exe` on Windows). Set `AURA_BROWSER_CHANNEL` to override the browser channel.
+Browser checks start an isolated demo server and database, inspect front/rear/both sides/roof, verify layer controls and actual canvas picking, then check furnished floors, project switching and the preserved meeting room's telemetry, alarm, history and reconnection. Desktop/mobile and exterior/interior screenshots are saved under `test-results/`. On macOS the test uses installed Google Chrome. On other systems, first run `npx playwright install chromium`. Set `PYTHON_BIN` if your Python interpreter is not at `.venv/bin/python` (`.venv/Scripts/python.exe` on Windows). Set `AURA_BROWSER_CHANNEL` to override the browser channel.
 
 Format the frontend with `npm run format`. Runtime data, virtual environments, installed development packages, caches, and browser artifacts are ignored by Git. No hardware is needed for the automated tests; verify real firmware mapping and sensor behavior separately on the board.
 

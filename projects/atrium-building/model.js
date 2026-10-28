@@ -2,6 +2,9 @@
 import * as THREE from "three";
 import { ENVELOPE, FLOORS, ALL_ROOMS, CORRIDORS } from "./layout.js";
 import { createOfficeInteriors } from "./interiors.js";
+import { createArchitecture } from "./architecture.js";
+import { createBuildingServices } from "./services.js";
+import { createCoreStair, stairLayout } from "./stairs.js";
 
 export const FLOOR_COUNT = 3;
 export const FLOOR_HEIGHT = ENVELOPE.floorHeight;
@@ -12,21 +15,22 @@ export function createAtriumBuilding() {
   root.name = "Atrium building";
   const materials = {
     frame: new THREE.MeshStandardMaterial({
-      color: 0xdce7ec,
+      color: 0x354147,
       roughness: 0.38,
       metalness: 0.32,
     }),
     floor: new THREE.MeshStandardMaterial({
-      color: 0xd3dfe5,
+      color: 0xd7d5ca,
       roughness: 0.68,
       metalness: 0.08,
     }),
     glass: new THREE.MeshPhysicalMaterial({
-      color: 0x579dab,
+      color: 0x8faeb5,
       transparent: true,
-      opacity: 0.38,
-      roughness: 0.12,
-      metalness: 0.12,
+      opacity: 0.58,
+      roughness: 0.09,
+      metalness: 0.2,
+      envMapIntensity: 0.8,
       side: THREE.DoubleSide,
       depthWrite: false,
     }),
@@ -50,13 +54,22 @@ export function createAtriumBuilding() {
   const batches = new Map();
   const floors = [];
   const interiors = [];
+  const stairCores = [];
   const roof = new THREE.Group();
-  roof.name = "Glazed pitched roof";
+  roof.name = "Wing roofs and atrium skylight";
   root.add(roof);
+  const skylight = new THREE.Group();
+  skylight.name = "Atrium skylight";
+  skylight.userData = {
+    layer: "skylight",
+    kind: "glass",
+    label: "Central atrium glazed skylight",
+  };
+  roof.add(skylight);
   const vec = (x, y, z) => new THREE.Vector3(x, y, z);
   const names = {
-    structure: "White structural frame",
-    glass: "Blue-green curtain wall",
+    structure: "Retained structural grid / charcoal atrium frame",
+    glass: "Reflective blue-grey glazing",
     slabs: "Open floor plate",
     circulation: "Stairs and gallery railing",
     lift: "Glazed lift core",
@@ -259,34 +272,6 @@ export function createAtriumBuilding() {
       floor: parent.userData.floor,
     };
     parent.add(slab);
-  }
-  function facadeOpenings(layout, side) {
-    const x1 = side === "west" ? -20 : 5,
-      x2 = side === "west" ? -5 : 20;
-    const result = { front: [], back: [], left: [], right: [] };
-    for (const room of layout.rooms)
-      for (const door of room.doors) {
-        const b = room.bounds;
-        let wall = null;
-        if (door.side === "N" && b.z1 === -12 && b.x1 >= x1 && b.x2 <= x2)
-          wall = "back";
-        if (door.side === "S" && b.z2 === 12 && b.x1 >= x1 && b.x2 <= x2)
-          wall = "front";
-        if (door.side === "W" && b.x1 === x1) wall = "left";
-        if (door.side === "E" && b.x2 === x2) wall = "right";
-        if (wall)
-          result[wall].push({
-            start: door.at - door.width / 2,
-            end: door.at + door.width / 2,
-            height: 2.35,
-          });
-      }
-    result[side === "west" ? "right" : "left"].push({
-      start: -0.4,
-      end: 2,
-      height: 3.2,
-    });
-    return result;
   }
   function railing(parent, a, b, y) {
     const length = Math.hypot(b[0] - a[0], b[1] - a[1]);
@@ -494,14 +479,16 @@ export function createAtriumBuilding() {
       index === 0
         ? []
         : [
-            { x1: -19.8, x2: -16.2, z1: -11.8, z2: -6.6 },
+            stairLayout(layout.rooms.find((room) => room.id.endsWith("-S01")))
+              .opening,
             { x1: -11.9, x2: -10.1, z1: -5.9, z2: -3.7 },
           ];
     const eastHoles =
       index === 0
         ? []
         : [
-            { x1: 16.2, x2: 19.8, z1: -11.8, z2: -6.6 },
+            stairLayout(layout.rooms.find((room) => room.id.endsWith("-S02")))
+              .opening,
             { x1: 9.6, x2: 13.9, z1: -5.9, z2: -3.3 },
           ];
     slabWithHoles(floor, { x1: -20, x2: -5, z1: -12, z2: 12 }, y, westHoles);
@@ -539,8 +526,6 @@ export function createAtriumBuilding() {
       ])
         railing(floor, a, b, y);
     }
-    facade(floor, -20, -5, -12, 12, y, facadeOpenings(layout, "west"));
-    facade(floor, 5, 20, -12, 12, y, facadeOpenings(layout, "east"));
     facade(
       floor,
       -5,
@@ -548,7 +533,14 @@ export function createAtriumBuilding() {
       -11,
       11,
       y,
-      index === 0 ? { front: [{ start: -1.5, end: 1.5, height: 2.85 }] } : {},
+      index === 0
+        ? {
+            front: [
+              { start: -1.5, end: 1.5, height: 2.85 },
+              { start: 1.95, end: 3.35, height: 2.48 },
+            ],
+          }
+        : {},
       ["left", "right"],
     );
     // Columns align with partition/corridor intersections rather than desk positions.
@@ -567,11 +559,11 @@ export function createAtriumBuilding() {
         );
       }
     lift(floor, y, index);
-    if (index < 2) {
-      stairs(floor, y, -18, -11.5);
-      stairs(floor, y, 18, -11.5);
-      stairs(floor, y, 2, -10.5, true);
-    }
+    for (const room of layout.rooms.filter(
+      (item) => item.furniture === "stairs",
+    ))
+      stairCores.push(createCoreStair(floor, room, index, materials));
+    if (index < 2) stairs(floor, y, 2, -10.5, true);
     if (index === 0) entrance(floor, 0, 11.15);
     const interior = createOfficeInteriors(layout, FLOOR_HEIGHT);
     floor.add(interior.root);
@@ -581,11 +573,9 @@ export function createAtriumBuilding() {
   const yard = new THREE.Group();
   yard.name = "Rear service-yard reservation";
   root.add(yard);
-  box(yard, 0, -0.12, -16, 17, 0.08, 4, materials.floor, "reserve");
-  // Sloping glazed crowns echo the angular silhouette in the references.
+  box(yard, -9.5, 0.02, -18.5, 9, 0.04, 3, materials.floor, "reserve");
+  // Retain glazing above the central atrium only; office roofs are separate solid assemblies.
   for (const [x1, x2, z1, z2, leftHeight, rightHeight] of [
-    [-20, -5, -12, 12, 12.65, 15.1],
-    [5, 20, -12, 12, 14.2, 12.65],
     [-5, 0, -11, 11, 12.65, 14.7],
     [0, 5, -11, 11, 14.7, 12.65],
   ]) {
@@ -598,7 +588,7 @@ export function createAtriumBuilding() {
       const ya = leftHeight + (rightHeight - leftHeight) * t1,
         yb = leftHeight + (rightHeight - leftHeight) * t2;
       surface(
-        roof,
+        skylight,
         [
           [a, ya, z1],
           [b, yb, z1],
@@ -607,12 +597,12 @@ export function createAtriumBuilding() {
         ],
         materials.glass,
       );
-      beam(roof, [a, ya, z1], [a, ya, z2], 0.13);
-      beam(roof, [a, 12.6, z1], [a, ya, z1], 0.13);
-      beam(roof, [a, 12.6, z2], [a, ya, z2], 0.13);
+      beam(skylight, [a, ya, z1], [a, ya, z2], 0.13);
+      beam(skylight, [a, 12.6, z1], [a, ya, z1], 0.13);
+      beam(skylight, [a, 12.6, z2], [a, ya, z2], 0.13);
       for (const z of [z1, z2]) {
         surface(
-          roof,
+          skylight,
           [
             [a, 12.6, z],
             [b, 12.6, z],
@@ -622,14 +612,14 @@ export function createAtriumBuilding() {
           materials.glass,
         );
       }
-      for (const z of [z1, z2]) beam(roof, [a, ya, z], [b, yb, z], 0.13);
+      for (const z of [z1, z2]) beam(skylight, [a, ya, z], [b, yb, z], 0.13);
     }
     for (const [x, height] of [
       [x1, leftHeight],
       [x2, rightHeight],
     ]) {
       surface(
-        roof,
+        skylight,
         [
           [x, 12.6, z1],
           [x, 12.6, z2],
@@ -639,10 +629,12 @@ export function createAtriumBuilding() {
         materials.glass,
       );
     }
-    beam(roof, [x2, rightHeight, z1], [x2, rightHeight, z2], 0.13);
+    beam(skylight, [x2, rightHeight, z1], [x2, rightHeight, z2], 0.13);
     for (let z = z1; z <= z2; z += 2.5)
-      beam(roof, [x1, leftHeight, z], [x2, rightHeight, z], 0.12);
+      beam(skylight, [x1, leftHeight, z], [x2, rightHeight, z], 0.12);
   }
+  const architecture = createArchitecture({ root, floors, roof, materials });
+  const services = createBuildingServices({ root, floors, roof });
   for (const [parent, batch] of batches)
     for (const item of batch.values()) {
       const mesh = new THREE.InstancedMesh(
@@ -668,7 +660,11 @@ export function createAtriumBuilding() {
     floors,
     roof,
     materials,
+    architecture,
+    services,
+    skylight,
     interiors,
+    stairCores,
     rooms: ALL_ROOMS,
     corridors: CORRIDORS,
     yard,

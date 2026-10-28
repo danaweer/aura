@@ -220,6 +220,20 @@
                   <button type="button" id="atriumBtn" aria-pressed="false">
                     Atrium view
                   </button>
+                  <select
+                    id="buildingViewSelect"
+                    aria-label="Building inspection view"
+                  >
+                    <option value="overview">Finished exterior</option>
+                    <option value="front">Front / arrival</option>
+                    <option value="rear">Rear / services</option>
+                    <option value="left">Left side</option>
+                    <option value="right">Right side</option>
+                    <option value="roof">Roof inspection</option>
+                    <option value="offices">Office cutaway</option>
+                    <option value="plan">Floor plan</option>
+                    <option value="atrium">Atrium</option>
+                  </select>
                   <label
                     ><input id="cutawayToggle" type="checkbox" /> Cutaway</label
                   >
@@ -230,6 +244,14 @@
                   <label
                     ><input id="roofToggle" type="checkbox" checked />
                     Roof</label
+                  >
+                  <label
+                    ><input id="ceilingsToggle" type="checkbox" checked />
+                    Ceilings</label
+                  >
+                  <label
+                    ><input id="systemsToggle" type="checkbox" checked />
+                    Concept services</label
                   >
                 </div>
                 <div
@@ -281,8 +303,9 @@
                     role="img"
                     aria-label="Three-floor atrium building. Drag to orbit, scroll to zoom; use arrow keys, plus, minus, or Home."
                     hidden
-                    >Three-floor building with two glazed wings, a central
-                    atrium, stairs, and a lift core.</canvas
+                    >Three-floor furnished building with opaque private and
+                    service rooms, solid wing roofs, a glazed atrium,
+                    second-floor balconies and conceptual services.</canvas
                   >
                   <div
                     id="buildingLabels"
@@ -392,7 +415,7 @@
               >
                 <div class="building-inspector-heading">
                   <p class="eyebrow">PROJECT OVERVIEW</p>
-                  <h2>Offices, in place.</h2>
+                  <h2>AURA, taking shape.</h2>
                   <p id="buildingDescription"></p>
                 </div>
                 <div class="building-stats">
@@ -647,9 +670,8 @@
             <footer id="buildingFooter" class="safety-footer" hidden>
               <span>◈ AURA · ARCHITECTURE STUDIO</span
               ><span
-                >Office layout follows the supplied 40 × 24 m schematic plans ·
-                Services are reserved; networks and equipment follow
-                later.</span
+                >Existing 40 × 24 m model · Architectural and HVAC concept;
+                supports, drainage and equipment require engineering.</span
               >
             </footer>
           </div>
@@ -664,7 +686,12 @@
         and furniture. Office cutaway and Top view reveal each floor; room
         labels and Find a room show room IDs and areas. Service reserves reveal
         empty plant rooms, aligned risers, and overhead route allowances.
-        Networks and equipment will follow later.
+        Finished exterior, front, rear, side and roof inspection views are
+        available. Roofs and Ceilings are separate controls and automatically
+        hide during floor isolation. Concept services toggles rooftop
+        placeholders and connected air paths: blue supply, sage return and amber
+        sanitary exhaust. This is a conceptual model, not an installation
+        design.
       </p>
       <p>
         The MXCHIP AZ3166 supplies real sensor values through its Modbus TCP

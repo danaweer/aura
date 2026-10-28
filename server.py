@@ -302,7 +302,7 @@ def make_handler(hub):
         def do_GET(self):
             route = urlsplit(self.path).path
             static = {"/": "index.html", "/index.html": "index.html", "/app.js": "app.js", "/telemetry.js": "telemetry.js", "/style.css": "style.css"}
-            for filename in ("building-viewer.js", "project-ui.js", "vendor/three.module.js", "vendor/three.core.js", "vendor/OrbitControls.js", "projects/meeting-room/model.js", "projects/atrium-building/model.js", "projects/atrium-building/layout.js", "projects/atrium-building/interiors.js", "projects/meeting-room/preview.svg", "projects/atrium-building/preview.svg"):
+            for filename in ("building-viewer.js", "project-ui.js", "vendor/three.module.js", "vendor/three.core.js", "vendor/OrbitControls.js", "projects/meeting-room/model.js", "projects/atrium-building/model.js", "projects/atrium-building/layout.js", "projects/atrium-building/interiors.js", "projects/atrium-building/geometry.js", "projects/atrium-building/architecture.js", "projects/atrium-building/services.js", "projects/atrium-building/visibility.js", "projects/atrium-building/stairs.js", "projects/meeting-room/preview.svg", "projects/atrium-building/preview.svg"):
                 static["/" + filename] = filename
             if route in static:
                 filename = static[route]

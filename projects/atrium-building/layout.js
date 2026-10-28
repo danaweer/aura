@@ -57,8 +57,8 @@ function common(prefix, index) {
       rect(-20, -16, -12, -6),
       "stairs",
       0,
-      [door("E", -6.8), ...(index === 0 ? [door("N", -18.1, 1.1, true)] : [])],
-      "24 m² stair reserve; detailed stair coordination remains a later design task.",
+      [door("E", -6.8), ...(index === 0 ? [door("W", -6.8, 1.1, true)] : [])],
+      "24 m² stair core with a level corridor landing on each floor, outer-wall ground exit, and maintenance access to the roof.",
     ),
     room(
       prefix,
@@ -68,8 +68,8 @@ function common(prefix, index) {
       rect(16, 20, -12, -6),
       "stairs",
       0,
-      [door("W", -6.8), ...(index === 0 ? [door("N", 18.1, 1.1, true)] : [])],
-      "24 m² stair reserve, aligned on every floor.",
+      [door("W", -6.8), ...(index === 0 ? [door("E", -6.8, 1.1, true)] : [])],
+      "24 m² stair core with a level corridor landing on each floor, outer-wall ground exit, and maintenance access to the roof.",
     ),
     room(
       prefix,

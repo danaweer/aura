@@ -984,10 +984,10 @@ async function activateProject(project) {
     syncViewButtons();
   } else {
     $("roomName").textContent = project.name;
-    $("roomLocation").textContent = "OFFICE INTERIORS · PHASE 02";
+    $("roomLocation").textContent = "ARCHITECTURE + CONCEPT SERVICES";
     $("roomTrail").textContent = project.name;
     $("projectSubtitle").textContent =
-      "Your office plans, furnished across three floors · Service spaces reserved for the next stage.";
+      "Three furnished floors · Private façades, solid roofs, balconies and connected concept services.";
     $("projectMeta").textContent = "40 × 24 m";
     $("roomCode").textContent = project.code;
     $("modeChip").textContent = "FURNISHED MODEL";
@@ -995,14 +995,14 @@ async function activateProject(project) {
     $("connState").className = "connection-status model-only";
     $("connLabel").textContent = "MODEL ONLY · NO IoT";
     $("sceneKey").textContent = "OFFICE CONCEPT / 40 × 24 m";
-    $("sceneCaptionLabel").textContent = "FURNISHED BUILDING";
+    $("sceneCaptionLabel").textContent = "AURA OFFICE BUILDING";
     $("sceneOrientation").textContent = "FRONT +Z";
     $("roomDimensions").textContent = "40 × 24 m · THREE FLOORS";
     $("sensorCount").textContent = "0 IoT DEVICES";
     $("assetCount").textContent = `${ROOM_COUNT} ROOMS · FURNISHED`;
-    $("sceneSync").textContent = "PHASE 02 · OFFICE LAYOUTS";
+    $("sceneSync").textContent = "ARCHITECTURAL CONCEPT";
     $("sceneHelp").textContent =
-      "Office cutaway reveals each furnished floor. Select a room label to inspect it; Service reserves shows spaces kept for future systems.";
+      "Choose an exterior view or isolate a furnished floor. Hide roofs and ceilings to inspect; Concept services shows connected air routes and rooftop reservations.";
     renderProjectDetails(project);
     $("buildingRoomCount").textContent = String(ROOM_COUNT);
     $("roomSelect").replaceChildren(
@@ -1052,7 +1052,7 @@ async function activateProject(project) {
             }
           }
           $("buildingPartInfo").textContent =
-            `${level} · ${part.kind === "reserve" ? "Reserved coordination space; no equipment or networks installed." : "Building model; no live device is assigned to this element."}`;
+            `${level} · ${part.detail || (part.kind === "reserve" ? "Reserved coordination space; no fitted equipment installed." : "Concept model; no live device is assigned to this element.")}`;
         });
       buildingViewer.setActive(true);
       $("buildingStatus").hidden = true;
@@ -1069,6 +1069,7 @@ async function activateProject(project) {
 function updateBuildingControls() {
   if (!buildingViewer) return;
   const state = buildingViewer;
+  $("buildingViewSelect").value = state.view;
   $("floorSelect").value = String(state.floor);
   $("selectedFloorLabel").textContent =
     state.floor === "all"
@@ -1098,6 +1099,8 @@ function updateBuildingControls() {
     ["lowWallsToggle", "lowWalls"],
     ["serviceReservesToggle", "services"],
     ["roomLabelsToggle", "labels"],
+    ["ceilingsToggle", "ceilings"],
+    ["systemsToggle", "systems"],
   ])
     $(id).checked = state[key];
   $("floorPurpose").textContent =
@@ -1106,10 +1109,19 @@ function updateBuildingControls() {
       : `${FLOORS[Number(state.floor)].name} · ${FLOORS[Number(state.floor)].purpose}`;
   $("roofToggle").checked = state.roof;
   $("roofToggle").disabled =
-    state.view !== "overview" || state.cutaway || state.floor !== "all";
+    ["offices", "plan", "atrium"].includes(state.view) ||
+    state.cutaway ||
+    state.floor !== "all";
   $("roofToggle").title = $("roofToggle").disabled
     ? "Roof is hidden while exploring the interior or an individual floor"
-    : "Show the glazed roof";
+    : "Show solid wing roofs and central atrium skylight";
+  $("ceilingsToggle").disabled =
+    ["offices", "plan", "atrium"].includes(state.view) ||
+    state.cutaway ||
+    state.floor !== "all";
+  $("ceilingsToggle").title = $("ceilingsToggle").disabled
+    ? "Ceilings are automatically hidden while inspecting floors and rooms"
+    : "Show suspended ceilings below the structural slabs";
 }
 function setBuildingView(view) {
   if (buildingViewer) {
@@ -1124,6 +1136,8 @@ function setBuildingFloor(floor) {
   }
 }
 $("floorSelect").onchange = (event) => setBuildingFloor(event.target.value);
+$("buildingViewSelect").onchange = (event) =>
+  setBuildingView(event.target.value);
 for (const button of document.querySelectorAll("[data-floor]"))
   button.onclick = () => setBuildingFloor(button.dataset.floor);
 $("atriumBtn").onclick = () => setBuildingView("atrium");
@@ -1143,6 +1157,8 @@ for (const [id, key] of [
   ["lowWallsToggle", "lowWalls"],
   ["serviceReservesToggle", "services"],
   ["roomLabelsToggle", "labels"],
+  ["ceilingsToggle", "ceilings"],
+  ["systemsToggle", "systems"],
 ])
   $(id).onchange = (event) => {
     buildingViewer?.setLayer(key, event.target.checked);

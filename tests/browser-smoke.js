@@ -101,11 +101,63 @@ try {
   await expect(page.locator("#projectIot")).toContainText(
     "No devices assigned",
   );
+  await mkdir(path.join(root, "test-results"), { recursive: true });
+  await expect(page.locator("#buildingCanvas")).toHaveAttribute(
+    "data-view",
+    "overview",
+  );
+  await expect(page.locator("#buildingCanvas")).toHaveAttribute(
+    "data-roof-visible",
+    "true",
+  );
+  await expect(page.locator("#buildingCanvas")).toHaveAttribute(
+    "data-ceilings-visible",
+    "true",
+  );
+  await page.locator("#scene").screenshot({
+    path: path.join(root, "test-results", "exterior-overview.png"),
+  });
+  for (const view of ["front", "rear", "left", "right", "roof"]) {
+    await page.locator("#buildingViewSelect").selectOption(view);
+    await expect(page.locator("#buildingCanvas")).toHaveAttribute(
+      "data-view",
+      view,
+    );
+    await page.locator("#scene").screenshot({
+      path: path.join(root, "test-results", `exterior-${view}.png`),
+    });
+  }
+  await page.locator("#ceilingsToggle").uncheck();
+  await expect(page.locator("#buildingCanvas")).toHaveAttribute(
+    "data-ceilings-visible",
+    "false",
+  );
+  await page.locator("#roofToggle").uncheck();
+  await expect(page.locator("#buildingCanvas")).toHaveAttribute(
+    "data-roof-visible",
+    "false",
+  );
+  await page.locator("#roofToggle").check();
+  await page.locator("#ceilingsToggle").check();
+  await page.locator("#systemsToggle").uncheck();
+  await expect(page.locator("#buildingCanvas")).toHaveAttribute(
+    "data-systems",
+    "false",
+  );
+  await page.locator("#systemsToggle").check();
   for (const floor of ["0", "1", "2"]) {
     await page.locator("#floorSelect").selectOption(floor);
     await expect(page.locator("#buildingCanvas")).toHaveAttribute(
       "data-floor",
       floor,
+    );
+    await expect(page.locator("#buildingCanvas")).toHaveAttribute(
+      "data-ceilings-visible",
+      "false",
+    );
+    await expect(page.locator("#buildingCanvas")).toHaveAttribute(
+      "data-roof-visible",
+      "false",
     );
   }
   await page.locator("#floorSelect").selectOption("all");
@@ -135,10 +187,11 @@ try {
   await mkdir(path.join(root, "test-results"), { recursive: true });
   await expect(page.locator("#buildingCanvas")).toHaveAttribute(
     "data-view",
-    "offices",
+    "overview",
   );
   await expect(page.locator("#modeChip")).toHaveText("FURNISHED MODEL");
   await expect(page.locator("#roomSelect option")).toHaveCount(71);
+  await page.locator("#systemsToggle").uncheck();
   for (const [floor, name, purpose] of [
     ["0", "ground", "Arrival"],
     ["1", "first", "Team"],
@@ -156,11 +209,31 @@ try {
       fullPage: true,
     });
   }
+  for (const [room, name] of [
+    ["L1-S01", "stair-A"],
+    ["L1-S02", "stair-B"],
+  ]) {
+    await page.locator("#officeViewBtn").click();
+    await page.locator("#roomSelect").selectOption(room);
+    await expect(page.locator("#buildingPartTitle")).toContainText(room);
+    await page.locator("#scene").screenshot({
+      path: path.join(root, "test-results", `${name}-landing.png`),
+    });
+  }
   await page.locator("#roomSelect").selectOption("L2-04");
   await expect(page.locator("#buildingPartTitle")).toContainText("Boardroom");
   await expect(page.locator("#buildingPartInfo")).toContainText(
     "70 m² · 12 seats",
   );
+  await page.locator("#officeViewBtn").click();
+  await page.locator("#scene").screenshot({
+    path: path.join(root, "test-results", "interior-second-floor.png"),
+  });
+  await page.locator("#systemsToggle").check();
+  await page.locator("#scene").screenshot({
+    path: path.join(root, "test-results", "interior-air-distribution.png"),
+  });
+  await page.locator("#systemsToggle").uncheck();
   await page.locator("#roomSelect").selectOption("G-M01");
   await expect(page.locator("#floorSelect")).toHaveValue("0");
   await expect(page.locator("#buildingPartTitle")).toContainText("Fire pump");
@@ -202,6 +275,19 @@ try {
   await expect(
     page.locator('#buildingLabels button[data-room-id="G-05"]'),
   ).toBeVisible();
+  await page.locator("#topBtn").click();
+  const trainingLabel = await page
+    .locator('#buildingLabels button[data-room-id="G-05"]')
+    .boundingBox();
+  await page.locator("#roomLabelsToggle").uncheck();
+  await page.mouse.click(
+    trainingLabel.x + trainingLabel.width / 2,
+    trainingLabel.y + trainingLabel.height / 2,
+  );
+  await expect(page.locator("#buildingPartTitle")).toContainText("G-05");
+  await expect(page.locator("#buildingPartInfo")).toContainText("16 seats");
+  await page.locator("#roomLabelsToggle").check();
+  await page.locator("#officeViewBtn").click();
   console.log(
     "PASS Furnished floor plans, room navigation, boardroom capacity, service reserves, and interior layer controls",
   );

@@ -447,8 +447,15 @@ export function createOfficeInteriors(floor, floorHeight) {
       const opening = group.doors.some(
         (edge) => mid > edge.start && mid < edge.end,
       );
-      const h = opening ? 0.9 : 3.2,
-        y = opening ? 2.75 : 1.6;
+      const stairEdge = group.edges.some(
+        (edge) =>
+          edge.room.furniture === "stairs" &&
+          mid > edge.start &&
+          mid < edge.end,
+      );
+      const top = stairEdge ? floorHeight - 0.24 : 3.2;
+      const h = opening ? top - 2.3 : top,
+        y = opening ? (top + 2.3) / 2 : top / 2;
       const info = meta(
         owner.room,
         "partition",
@@ -468,7 +475,7 @@ export function createOfficeInteriors(floor, floorHeight) {
       box(
         walls,
         group.axis === "X" ? group.pos : mid,
-        3.22,
+        top + 0.02,
         group.axis === "X" ? mid : group.pos,
         group.axis === "X" ? 0.16 : end - start,
         0.04,
@@ -481,7 +488,11 @@ export function createOfficeInteriors(floor, floorHeight) {
   // Door leaves stay open into their rooms, with actual gaps in the partitions.
   for (const room of floor.rooms)
     for (const opening of room.doors) {
-      if (["lift", "central-stair"].includes(room.furniture)) continue;
+      if (
+        ["lift", "central-stair"].includes(room.furniture) ||
+        opening.exterior
+      )
+        continue;
       const { x, z } = doorPosition(room, opening),
         alongX = ["N", "S"].includes(opening.side),
         info = meta(
@@ -491,12 +502,17 @@ export function createOfficeInteriors(floor, floorHeight) {
         );
       const hingeX = alongX ? x - opening.width / 2 : x,
         hingeZ = alongX ? z : z - opening.width / 2;
-      const rotation = {
-        N: -Math.PI / 3,
-        S: Math.PI / 3,
-        E: -Math.PI / 2 - Math.PI / 3,
-        W: -Math.PI / 2 + Math.PI / 3,
-      }[opening.side];
+      const rotation =
+        room.furniture === "stairs" && ["E", "W"].includes(opening.side)
+          ? opening.side === "E"
+            ? Math.PI
+            : 0
+          : {
+              N: -Math.PI / 3,
+              S: Math.PI / 3,
+              E: -Math.PI / 2 - Math.PI / 3,
+              W: -Math.PI / 2 + Math.PI / 3,
+            }[opening.side];
       const leaf = new THREE.Group();
       leaf.position.set(hingeX, 0, hingeZ);
       leaf.rotation.y = rotation;

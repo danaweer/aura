@@ -4,6 +4,10 @@ import {
   createAtriumBuilding,
   FLOOR_HEIGHT,
 } from "./projects/atrium-building/model.js";
+import {
+  applyBuildingVisibility,
+  visibleIntersections,
+} from "./projects/atrium-building/visibility.js";
 
 export class BuildingViewer {
   constructor(canvas, onSelect = () => {}) {
@@ -19,6 +23,8 @@ export class BuildingViewer {
     this.lowWalls = true;
     this.services = false;
     this.labels = true;
+    this.ceilings = true;
+    this.systems = true;
     this.onSelect = onSelect;
     this.labelLayer = document.getElementById("buildingLabels");
     this.labelButtons = [];
@@ -63,6 +69,30 @@ export class BuildingViewer {
     const fill = new THREE.DirectionalLight(0xd6efff, 1.1);
     fill.position.set(20, 15, -25);
     this.scene.add(fill);
+    // A local procedural studio environment gives glass and metal restrained reflections.
+    // No texture download or additional dependency is needed.
+    const studio = new THREE.Scene();
+    studio.background = new THREE.Color(0xd4e1e7);
+    for (const [x, y, z, w, h, d, color] of [
+      [0, 20, 0, 70, 0.2, 70, 0xf3f3ed],
+      [-25, 5, 0, 0.2, 15, 40, 0xa9bdc9],
+      [15, 10, 25, 20, 18, 0.2, 0xffffff],
+    ]) {
+      const panel = new THREE.Mesh(
+        new THREE.BoxGeometry(w, h, d),
+        new THREE.MeshBasicMaterial({ color }),
+      );
+      panel.position.set(x, y, z);
+      studio.add(panel);
+    }
+    const environment = new THREE.PMREMGenerator(this.renderer);
+    this.environmentMap = environment.fromScene(studio, 0.05);
+    this.scene.environment = this.environmentMap.texture;
+    studio.traverse((object) => {
+      object.geometry?.dispose();
+      object.material?.dispose();
+    });
+    environment.dispose();
     this.model = createAtriumBuilding();
     this.scene.add(this.model.root);
     const ground = new THREE.Mesh(
@@ -74,10 +104,10 @@ export class BuildingViewer {
     ground.receiveShadow = true;
     this.scene.add(ground);
     const plinth = new THREE.Mesh(
-      new THREE.BoxGeometry(44, 0.24, 34),
+      new THREE.BoxGeometry(52, 0.24, 43),
       new THREE.MeshStandardMaterial({ color: 0xc6d3db, roughness: 0.8 }),
     );
-    plinth.position.set(0, -0.3, -2);
+    plinth.position.set(0, -0.32, 1);
     plinth.receiveShadow = true;
     this.scene.add(plinth);
     this.raycaster = new THREE.Raycaster();
@@ -99,13 +129,7 @@ export class BuildingViewer {
         ),
         this.camera,
       );
-      const hit = this.raycaster
-        .intersectObject(this.model.root, true)
-        .find((item) => {
-          for (let node = item.object; node; node = node.parent)
-            if (!node.visible) return false;
-          return true;
-        });
+      const hit = visibleIntersections(this.raycaster, this.model.root)[0];
       if (hit) {
         const part =
           hit.object.userData.instances?.[hit.instanceId] ||
@@ -186,7 +210,7 @@ export class BuildingViewer {
       this.labelLayer.append(element);
       this.planNotes.push({ x, z, label, element });
     }
-    this.setView("offices");
+    this.setView("overview");
   }
   resize() {
     if (!this.active) return;
@@ -205,6 +229,8 @@ export class BuildingViewer {
     if (active) this.resize();
   }
   setView(view) {
+    if (["overview", "front", "rear", "left", "right", "roof"].includes(view))
+      this.floor = "all";
     if (["plan", "offices"].includes(view) && this.floor === "all")
       this.floor = "0";
     this.view = view;
@@ -216,9 +242,14 @@ export class BuildingViewer {
       0,
     );
     if (view === "plan") this.camera.position.set(0, y + 70, 0.01);
-    else if (view === "offices") this.camera.position.set(29, y + 37, 40);
+    else if (view === "offices") this.camera.position.set(34, y + 42, 47);
     else if (view === "atrium") this.camera.position.set(19, y + 16, 29);
-    else this.camera.position.set(40, y + 25, 48);
+    else if (view === "front") this.camera.position.set(0, 22, 79);
+    else if (view === "rear") this.camera.position.set(29, 25, -70);
+    else if (view === "left") this.camera.position.set(-79, 24, 0);
+    else if (view === "right") this.camera.position.set(79, 24, 0);
+    else if (view === "roof") this.camera.position.set(0, 89, 0.01);
+    else this.camera.position.set(42, 32, 58);
     this.controls.update();
     this.applyLayers();
     this.render();
@@ -228,7 +259,10 @@ export class BuildingViewer {
     this.setView(
       floor === "all" && ["plan", "offices"].includes(this.view)
         ? "overview"
-        : floor !== "all" && this.view === "overview"
+        : floor !== "all" &&
+            ["overview", "front", "rear", "left", "right", "roof"].includes(
+              this.view,
+            )
           ? "offices"
           : this.view,
     );
@@ -241,44 +275,7 @@ export class BuildingViewer {
   applyLayers() {
     // Keep floor plans readable without tall columns casting shadows across rooms.
     this.renderer.shadowMap.enabled = this.view !== "plan";
-    this.model.floors.forEach((group, index) => {
-      group.visible = this.floor === "all" || index === Number(this.floor);
-    });
-    const opened =
-      this.cutaway ||
-      this.view === "atrium" ||
-      this.view === "plan" ||
-      this.view === "offices" ||
-      this.floor !== "all";
-    this.model.roof.visible = this.roof && !opened;
-    this.model.yard.visible =
-      this.services && (this.floor === "all" || this.floor === "0");
-    this.model.interiors.forEach((interior) => {
-      interior.walls.visible = this.partitions;
-      interior.walls.scale.y = this.lowWalls && opened ? 0.85 / 3.2 : 1;
-      interior.furniture.visible = this.furniture;
-      interior.reserves.visible = this.services;
-    });
-    this.model.root.traverse((object) => {
-      if (!object.isMesh) return;
-      const glass = object.material === this.model.materials.glass;
-      const front = object.userData.side === "front";
-      const exterior = ["front", "back", "left", "right"].includes(
-        object.userData.side,
-      );
-      object.visible =
-        (!glass || this.glass) &&
-        !(
-          ["plan", "offices"].includes(this.view) &&
-          exterior &&
-          ["glass", "structure"].includes(object.userData.kind)
-        ) &&
-        !(
-          opened &&
-          front &&
-          ["glass", "structure"].includes(object.userData.kind)
-        );
-    });
+    applyBuildingVisibility(this.model, this);
   }
   selectRoom(id, focus = true) {
     const room = this.model.rooms.find((item) => item.id === id);
@@ -387,5 +384,11 @@ export class BuildingViewer {
     this.canvas.dataset.furniture = String(this.furniture);
     this.canvas.dataset.lowWalls = String(this.lowWalls);
     this.canvas.dataset.services = String(this.services);
+    this.canvas.dataset.systems = String(this.systems);
+    this.canvas.dataset.ceilings = String(this.ceilings);
+    this.canvas.dataset.roofVisible = String(this.model.roof.visible);
+    this.canvas.dataset.ceilingsVisible = String(
+      this.model.services.ceilings.some((part) => part.visible),
+    );
   }
 }
