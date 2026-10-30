@@ -299,7 +299,7 @@ class HttpTests(unittest.TestCase):
         self.assertEqual(status, 200)
         catalog = json.loads(body)
         self.assertEqual(len(catalog['projects']), 2)
-        for route in ('/building-viewer.js', '/viewer-fullscreen.js', '/project-ui.js', '/vendor/three.module.js', '/vendor/three.core.js', '/vendor/OrbitControls.js', '/projects/meeting-room/model.js', '/projects/atrium-building/model.js', '/projects/atrium-building/layout.js', '/projects/atrium-building/interiors.js', '/projects/atrium-building/geometry.js', '/projects/atrium-building/architecture.js', '/projects/atrium-building/services.js', '/projects/atrium-building/visibility.js', '/projects/atrium-building/stairs.js', '/projects/atrium-building/egress.js', '/projects/atrium-building/egress-plan.js'):
+        for route in ('/building-viewer.js', '/viewer-fullscreen.js', '/project-ui.js', '/vendor/three.module.js', '/vendor/three.core.js', '/vendor/OrbitControls.js', '/projects/meeting-room/model.js', '/projects/atrium-building/model.js', '/projects/atrium-building/layout.js', '/projects/atrium-building/interiors.js', '/projects/atrium-building/geometry.js', '/projects/atrium-building/architecture.js', '/projects/atrium-building/services.js', '/projects/atrium-building/visibility.js', '/projects/atrium-building/stairs.js', '/projects/atrium-building/egress.js', '/projects/atrium-building/egress-plan.js', '/projects/atrium-building/extinguishers.js', '/projects/atrium-building/extinguisher-plan.js', '/projects/atrium-building/washroom-plan.js', '/projects/atrium-building/washrooms.js', '/projects/atrium-building/washroom-plumbing.js'):
             self.assertEqual(self.request('GET', route)[0], 200, route)
         status, headers, _ = self.request('GET', '/projects/atrium-building/preview.svg')
         self.assertEqual(status, 200)
@@ -308,6 +308,11 @@ class HttpTests(unittest.TestCase):
         self.assertEqual(status, 200)
         self.assertEqual(headers['Content-Type'], 'application/pdf')
         self.assertTrue(body.startswith(b'%PDF-'))
+        for page in range(10, 15):
+            status, headers, body = self.request('GET', f'/projects/atrium-building/reference/extinguishers-f01-p{page}.pdf')
+            self.assertEqual(status, 200)
+            self.assertEqual(headers['Content-Type'], 'application/pdf')
+            self.assertTrue(body.startswith(b'%PDF-'))
         self.assertEqual(self.request('GET', '/projects/../server.py')[0], 404)
 
     def test_initial_connection_skips_old_alarms_and_resume_only_replays_missed(self):

@@ -11,6 +11,9 @@ export function applyBuildingVisibility(model, state) {
   model.egress?.signs.forEach((part) => {
     part.visible = state.egressSigns !== false;
   });
+  model.extinguishers?.layers.forEach((part) => {
+    part.visible = state.extinguishers !== false;
+  });
   model.egress?.routes.forEach((part) => {
     part.visible = !!state.egressPaths && !model.egress.current;
   });
@@ -38,6 +41,13 @@ export function applyBuildingVisibility(model, state) {
     part.visible = state.systems;
   });
   model.services.rooftop.visible = state.systems;
+  model.services.plumbing.roof.visible = state.systems;
+  model.interiors.forEach((part) => {
+    part.washrooms.clearances.visible = !!state.washroomClearances;
+    part.washrooms.markers.visible = !!state.washroomPoints;
+    for (const door of part.washrooms.doors)
+      door.object.rotation.y = state.washroomDoors ? door.openAngle : 0;
+  });
   model.services.riserShell.visible = !opened;
   model.architecture.drainage.visible = !opened;
   model.architecture.site.visible =
@@ -45,7 +55,12 @@ export function applyBuildingVisibility(model, state) {
   model.architecture.balconies.visible = !isolated || state.floor === "2";
   model.interiors.forEach((part) => {
     part.walls.visible = state.partitions;
-    part.walls.scale.y = state.lowWalls && opened ? 0.85 / 3.2 : 1;
+    const detail = state.washroomDetail && opened;
+    part.walls.scale.y = (state.lowWalls || detail) && opened ? 0.85 / 3.2 : 1;
+    // Inspection cutaway lowers the perimeter only, keeping the new cubicles
+    // and doors full size so the washroom layout remains understandable.
+    for (const partition of part.washrooms.partitions)
+      partition.scale.y = detail ? 1 / part.walls.scale.y : 1;
     part.furniture.visible = state.furniture;
     part.reserves.visible = state.services;
   });

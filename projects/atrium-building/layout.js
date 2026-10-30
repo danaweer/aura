@@ -78,9 +78,9 @@ function common(prefix, index) {
       "service",
       rect(-20, -16, -6, -0.4),
       "wc",
-      2,
+      3,
       [door("E", -1.8)],
-      "Wet-service position retained on all three floors.",
+      "Washroom concept: two standard WCs, one larger cubicle, two basins and a proposed 1.60 m turning reserve. Existing envelope and door location retained; clearances remain conceptual.",
     ),
     room(
       prefix,
@@ -89,9 +89,9 @@ function common(prefix, index) {
       "service",
       rect(16, 20, -6, -0.4),
       "wc",
-      2,
+      3,
       [door("W", -1.8)],
-      "Wet-service position retained on all three floors.",
+      "Washroom concept: two standard WCs, one larger cubicle, two basins and a proposed 1.60 m turning reserve. Existing envelope and door location retained; clearances remain conceptual.",
     ),
     room(
       prefix,
@@ -113,7 +113,7 @@ function common(prefix, index) {
       "riser",
       0,
       [],
-      "4.8 m² vertical wet-service reserve. No pipes installed.",
+      "4.8 m² vertical wet-service reserve, now containing conceptual washroom domestic-water and soil/vent routes; equipment and engineering sizes remain unverified.",
     ),
     room(
       prefix,
@@ -124,7 +124,7 @@ function common(prefix, index) {
       "accessible-wc",
       1,
       [door("W", -2.1, 1.0)],
-      "12.8 m² schematic reserve; fixtures and clearances follow the concept only.",
+      "Separate accessible WC retained and refitted with wall-hung WC, knee-clear basin, grab rails, turning/transfer reserves and planned assistance point. Accessibility is not certified.",
     ),
     room(
       prefix,

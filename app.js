@@ -1043,6 +1043,20 @@ async function activateProject(project) {
                 : part.floor === 0
                   ? "Ground floor"
                   : `Level 0${part.floor}`;
+            if (part.kind === "washroom-point") {
+              $("washroomPointSelect").value = part.assetId;
+              $("buildingPartInfo").textContent =
+                `${level} · UNAVAILABLE · MODEL ONLY. ${part.detail} Command and running proof are separate planned points; no live reading or operating state is asserted.`;
+              updateBuildingControls();
+              return;
+            }
+            if (part.kind === "fire-extinguisher") {
+              $("extinguisherSelect").value = part.assetId;
+              $("buildingPartInfo").textContent =
+                `${level} · PDF F01 p.${part.sourcePage} · ${part.type} · ${part.location}. Paired sign ${part.signId}. Extinguisher top ${part.topHeight.toFixed(2)} m; sign centre ${part.signHeight.toFixed(2)} m above this floor. Proposed equipment reservation; rating, coverage and installation require verification. No live device assigned.`;
+              updateBuildingControls();
+              return;
+            }
             if (part.kind === "egress-sign") {
               $("egressSignSelect").value = part.assetId;
               const faces =
@@ -1066,7 +1080,7 @@ async function activateProject(project) {
               if (space) {
                 $("roomSelect").value = space.id;
                 const capacity = space.count
-                  ? ` · ${space.count} ${["desks", "ceo", "bms"].includes(space.furniture) ? "desks" : "seats"}`
+                  ? ` · ${space.count} ${["wc", "accessible-wc"].includes(space.furniture) ? "WCs" : ["desks", "ceo", "bms"].includes(space.furniture) ? "desks" : "seats"}`
                   : "";
                 $("buildingPartInfo").textContent =
                   `${level} · ${space.area} m²${capacity}. ${space.note || "Furnished according to the supplied schematic office plan."}`;
@@ -1113,6 +1127,10 @@ function updateBuildingControls() {
   $("topBtn").setAttribute("aria-pressed", String(state.view === "plan"));
   $("atriumBtn").setAttribute("aria-pressed", String(state.view === "atrium"));
   $("cutawayToggle").checked = state.cutaway;
+  $("washroomViewBtn").setAttribute(
+    "aria-pressed",
+    String(state.washroomDetail),
+  );
   $("glassToggle").checked = state.glass;
   $("officeViewBtn").setAttribute(
     "aria-pressed",
@@ -1128,6 +1146,10 @@ function updateBuildingControls() {
     ["systemsToggle", "systems"],
     ["egressSignsToggle", "egressSigns"],
     ["egressPathsToggle", "egressPaths"],
+    ["extinguishersToggle", "extinguishers"],
+    ["washroomClearancesToggle", "washroomClearances"],
+    ["washroomDoorsToggle", "washroomDoors"],
+    ["washroomPointsToggle", "washroomPoints"],
   ])
     $(id).checked = state[key];
   const chosenRoom = state.model.rooms.find(
@@ -1199,12 +1221,27 @@ for (const [id, key] of [
   ["systemsToggle", "systems"],
   ["egressSignsToggle", "egressSigns"],
   ["egressPathsToggle", "egressPaths"],
+  ["extinguishersToggle", "extinguishers"],
+  ["washroomClearancesToggle", "washroomClearances"],
+  ["washroomDoorsToggle", "washroomDoors"],
+  ["washroomPointsToggle", "washroomPoints"],
 ])
   $(id).onchange = (event) => {
     buildingViewer?.setLayer(key, event.target.checked);
     updateBuildingControls();
   };
 $("egressPlanBtn").onclick = () => buildingViewer?.showExitPlan();
+$("washroomViewBtn").onclick = () =>
+  buildingViewer?.showWashroom($("roomSelect").value);
+$("washroomPointSelect").onchange = (event) => {
+  if (event.target.value)
+    buildingViewer?.selectWashroomPoint(event.target.value);
+};
+$("extinguisherPlanBtn").onclick = () => buildingViewer?.showExtinguisherPlan();
+$("extinguisherSelect").onchange = (event) => {
+  if (event.target.value)
+    buildingViewer?.selectExtinguisher(event.target.value);
+};
 $("egressSignSelect").onchange = (event) => {
   if (event.target.value) buildingViewer?.selectSign(event.target.value);
 };

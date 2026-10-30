@@ -2108,6 +2108,13 @@ body.viewer-expanded {
   outline: 2px solid #eab65c;
   z-index: 3;
 }
+.extinguisher-label {
+  background: #b51c2b;
+}
+.extinguisher-label:hover,
+.extinguisher-label:focus-visible {
+  background: #801623;
+}
 .egress-endpoint {
   position: absolute;
   z-index: 4;

@@ -1,5 +1,6 @@
 /* Architectural treatment of the existing envelope; metres, front +Z. */
 import * as THREE from "three";
+import { WASHROOM_ROOF_PENETRATIONS } from "./washroom-plan.js";
 import { ENVELOPE, FLOORS, ALL_ROOMS } from "./layout.js";
 import { builder, group, finish } from "./geometry.js";
 import { stairLayout, ROOF_LANDING_Y } from "./stairs.js";
@@ -550,6 +551,9 @@ export function createArchitecture({ root, floors, roof, materials }) {
     const accessX = stairSpec.roofDoorX;
     const hatch = stairSpec.opening;
     const penetrations = west ? [hatch] : [hatch, EAST_ROOF_OPENING];
+    penetrations.push(
+      ...WASHROOM_ROOF_PENETRATIONS.filter((p) => (west ? p.x2 < 0 : p.x1 > 0)),
+    );
     plate(part, wing, ROOF_Y, 0.24, m.roof, penetrations, {
       kind: "roof-slab",
     });

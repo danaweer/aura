@@ -354,6 +354,58 @@ try {
       path: path.join(root, "test-results", `${name}-landing.png`),
     });
   }
+  // Inspect every redesigned washroom on all occupied floors.
+  for (const prefix of ["G", "L1", "L2"]) {
+    for (const code of ["W01", "W04", "W02"]) {
+      const id = `${prefix}-${code}`;
+      await page.locator("#roomSelect").selectOption(id);
+      await page.locator("#washroomViewBtn").click();
+      await expect(page.locator("#buildingPartTitle")).toContainText(id);
+      await expect(page.locator("#buildingPartInfo")).toContainText(
+        code === "W02" ? "1 WCs" : "3 WCs",
+      );
+      await expect(page.locator("#lowWallsToggle")).not.toBeChecked();
+      await expect(page.locator("#buildingCanvas")).toHaveAttribute(
+        "data-roof-visible",
+        "false",
+      );
+      await page.locator("#washroomClearancesToggle").check();
+      await page.locator("#scene").screenshot({
+        path: path.join(root, "test-results", `washroom-${id}.png`),
+      });
+    }
+  }
+  await page.locator("#washroomDoorsToggle").check();
+  await expect(page.locator("#buildingCanvas")).toHaveAttribute(
+    "data-washroom-doors",
+    "true",
+  );
+  await page.locator("#washroomDoorsToggle").uncheck();
+  await page.locator("#washroomClearancesToggle").uncheck();
+  await page.locator("#washroomPointSelect").selectOption("LD-L2-W01-01");
+  await expect(page.locator("#buildingPartInfo")).toContainText(
+    "UNAVAILABLE · MODEL ONLY",
+  );
+  await expect(page.locator("#roomTelemetry")).toBeHidden();
+  await expect(page.locator("#washroomPointsToggle")).toBeChecked();
+  await page.locator("#scene").screenshot({
+    path: path.join(root, "test-results", "washroom-services-and-points.png"),
+  });
+  await page.locator("#washroomPointSelect").selectOption("EF-L2-A-01");
+  await expect(page.locator("#buildingPartInfo")).toContainText(
+    "running proof",
+  );
+  await page.locator("#fullscreenBtn").click();
+  await expect(
+    page.locator("#fullscreenControls #washroomClearancesToggle"),
+  ).toBeVisible();
+  await page.locator("#washroomPointsToggle").uncheck();
+  await page.locator("#fullscreenBtn").click();
+  await page.locator("#lowWallsToggle").check();
+  await page.locator("#roomLabelsToggle").check();
+  console.log(
+    "PASS All nine washrooms, mirrored cubicles, private doors, clearance overlays, conceptual services and unavailable BMS points",
+  );
   await page.locator("#roomSelect").selectOption("L2-04");
   await expect(page.locator("#buildingPartTitle")).toContainText("Boardroom");
   await expect(page.locator("#buildingPartInfo")).toContainText(
@@ -519,6 +571,135 @@ try {
     }
   console.log(
     "PASS Pictographic stair guidance on all six occupied landings, floor selection and ground discharge direction",
+  );
+  await expect(page.locator("#extinguisherSelect optgroup option")).toHaveCount(
+    27,
+  );
+  await page.locator("#extinguisherPlanBtn").click();
+  for (const [floor, count] of [
+    ["0", 11],
+    ["1", 8],
+    ["2", 8],
+  ]) {
+    await page.locator("#floorSelect").selectOption(floor);
+    await expect(
+      page.locator("#extinguisherLabels button:visible"),
+    ).toHaveCount(count);
+    await expect(page.locator("#buildingCanvas")).toHaveAttribute(
+      "data-roof-visible",
+      "false",
+    );
+    await expect(page.locator("#buildingCanvas")).toHaveAttribute(
+      "data-ceilings-visible",
+      "false",
+    );
+    await page.locator("#scene").screenshot({
+      path: path.join(root, "test-results", `extinguishers-plan-${floor}.png`),
+    });
+  }
+  await page.locator('[data-extinguisher-id="FE-L2-07"]').click();
+  await expect(page.locator("#buildingPartTitle")).toContainText("FE-L2-07");
+  for (const [prefix, floor, count] of [
+    ["G", "0", 11],
+    ["L1", "1", 8],
+    ["L2", "2", 8],
+  ]) {
+    for (let n = 1; n <= count; n++) {
+      const id = `FE-${prefix}-${String(n).padStart(2, "0")}`;
+      await page.locator("#extinguisherSelect").selectOption(id);
+      await expect(page.locator("#floorSelect")).toHaveValue(floor);
+      await expect(page.locator("#buildingPartTitle")).toContainText(id);
+      await expect(page.locator("#buildingPartInfo")).toContainText(
+        `PDF F01 p.${11 + Number(floor)}`,
+      );
+      await expect(page.locator("#buildingPartInfo")).toContainText(
+        `SG-${prefix}-${String(n).padStart(2, "0")}`,
+      );
+      // Check actual rendered red pictogram pixels above each unit. A sign
+      // existing in the schedule is insufficient if its face is edge-on.
+      const redPixels = await page.evaluate(async (id) => {
+        const THREE = await import("/vendor/three.module.js");
+        const { EXTINGUISHERS } =
+          await import("/projects/atrium-building/extinguisher-plan.js");
+        const s = EXTINGUISHERS.find((station) => station.assetId === id);
+        const canvas = document.getElementById("buildingCanvas");
+        const rect = canvas.getBoundingClientRect();
+        const camera = new THREE.PerspectiveCamera(
+          36,
+          rect.width / rect.height,
+          0.2,
+          220,
+        );
+        camera.zoom = Math.min(1, camera.aspect / 1.15);
+        camera.position.set(
+          s.x + s.normal[0] * 12,
+          s.y + 4.1,
+          s.z + s.normal[1] * 12,
+        );
+        camera.lookAt(s.x, s.y + 1.35, s.z);
+        camera.updateProjectionMatrix();
+        camera.updateMatrixWorld();
+        const offset = s.projecting ? 0.22 : 0.02;
+        const p = new THREE.Vector3(
+          s.x + s.normal[0] * offset,
+          s.y + s.signHeight,
+          s.z + s.normal[1] * offset,
+        ).project(camera);
+        const copy = document.createElement("canvas");
+        copy.width = canvas.width;
+        copy.height = canvas.height;
+        const context = copy.getContext("2d");
+        context.drawImage(canvas, 0, 0);
+        const pixels = context.getImageData(
+          Math.round(((p.x + 1) / 2) * canvas.width) - 10,
+          Math.round(((1 - p.y) / 2) * canvas.height) - 10,
+          20,
+          20,
+        ).data;
+        let red = 0;
+        for (let i = 0; i < pixels.length; i += 4)
+          if (
+            pixels[i] > 80 &&
+            pixels[i] > pixels[i + 1] * 1.5 &&
+            pixels[i] > pixels[i + 2] * 1.5
+          )
+            red++;
+        return red;
+      }, id);
+      assert.ok(
+        redPixels > 10,
+        `${id} has a visible red pictogram above its extinguisher (${redPixels} pixels)`,
+      );
+      if (
+        id.startsWith("FE-L2-") ||
+        ["FE-G-01", "FE-G-05", "FE-G-11", "FE-L1-07"].includes(id)
+      )
+        await page.locator("#scene").screenshot({
+          path: path.join(root, "test-results", `extinguisher-${id}.png`),
+        });
+    }
+  }
+  await page.locator("#extinguishersToggle").uncheck();
+  await expect(page.locator("#buildingCanvas")).toHaveAttribute(
+    "data-extinguishers",
+    "false",
+  );
+  await page.locator("#extinguisherSelect").selectOption("FE-G-11");
+  await expect(page.locator("#extinguishersToggle")).toBeChecked();
+  await expect(page.locator("#buildingPartInfo")).toContainText("CA-E");
+  await page.locator("#fullscreenBtn").click();
+  await expect(
+    page.locator("#fullscreenControls #extinguishersToggle"),
+  ).toBeVisible();
+  await page.locator("#extinguishersToggle").uncheck();
+  await expect(page.locator("#buildingCanvas")).toHaveAttribute(
+    "data-extinguishers",
+    "false",
+  );
+  await page.locator("#extinguishersToggle").check();
+  await page.locator("#fullscreenBtn").click();
+  console.log(
+    "PASS All 27 PDF F01 extinguisher stations, paired IDs, floor plans, selection and fullscreen visibility controls",
   );
   if (systemsBeforeSignInspection) await page.locator("#systemsToggle").check();
   await page.locator("#egressPathsToggle").check();

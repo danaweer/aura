@@ -1,4 +1,9 @@
 import { createEgress } from "./egress.js";
+import { createExtinguishers } from "./extinguishers.js";
+import {
+  WASHROOM_PENETRATIONS,
+  WASHROOM_ROOF_PENETRATIONS,
+} from "./washroom-plan.js";
 /* Existing reference building, coordinated to the supplied 40 × 24 m office plans. */
 import * as THREE from "three";
 import { ENVELOPE, FLOORS, ALL_ROOMS, CORRIDORS } from "./layout.js";
@@ -492,8 +497,15 @@ export function createAtriumBuilding() {
               .opening,
             { x1: 9.6, x2: 13.9, z1: -5.9, z2: -3.3 },
           ];
-    slabWithHoles(floor, { x1: -20, x2: -5, z1: -12, z2: 12 }, y, westHoles);
-    slabWithHoles(floor, { x1: 5, x2: 20, z1: -12, z2: 12 }, y, eastHoles);
+    slabWithHoles(floor, { x1: -20, x2: -5, z1: -12, z2: 12 }, y, [
+      ...westHoles,
+      WASHROOM_PENETRATIONS[0],
+      ...(index === 0 ? [WASHROOM_ROOF_PENETRATIONS[2]] : []),
+    ]);
+    slabWithHoles(floor, { x1: 5, x2: 20, z1: -12, z2: 12 }, y, [
+      ...eastHoles,
+      WASHROOM_PENETRATIONS[1],
+    ]);
     if (index === 0)
       slabWithHoles(floor, { x1: -5, x2: 5, z1: -11, z2: 11 }, y);
     else {
@@ -657,8 +669,10 @@ export function createAtriumBuilding() {
       parent.add(mesh);
     }
   const egress = createEgress({ root, floors, stairCores });
+  const extinguishers = createExtinguishers({ floors });
   return {
     egress,
+    extinguishers,
     root,
     floors,
     roof,

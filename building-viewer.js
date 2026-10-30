@@ -27,6 +27,13 @@ export class BuildingViewer {
     this.systems = true;
     this.egressSigns = true;
     this.egressPaths = false;
+    this.extinguishers = true;
+    this.washroomClearances = false;
+    this.washroomDoors = false;
+    this.washroomPoints = false;
+    this.washroomDetail = false;
+    this.extinguisherLabelLayer = document.getElementById("extinguisherLabels");
+    this.extinguisherLabelButtons = [];
     this.egressLabelLayer = document.getElementById("egressLabels");
     this.egressLabelButtons = [];
     this.onSelect = onSelect;
@@ -167,6 +174,9 @@ export class BuildingViewer {
           hit.object.userData.instances?.[hit.instanceId] ||
           hit.object.userData;
         if (part.kind === "egress-sign") this.selectSign(part.assetId, false);
+        else if (part.kind === "washroom-point") onSelect(part);
+        else if (["fire-extinguisher", "extinguisher-sign"].includes(part.kind))
+          this.selectExtinguisher(part.stationId || part.assetId, false);
         else if (
           part.roomId &&
           this.model.rooms.some((room) => room.id === part.roomId)
@@ -327,6 +337,54 @@ export class BuildingViewer {
         ),
       );
     select.append(stairSigns);
+    const extinguisherSelect = document.getElementById("extinguisherSelect");
+    for (let floor = 0; floor < 3; floor++) {
+      const options = document.createElement("optgroup");
+      options.label = [
+        "Ground · 11 stations",
+        "First · 8 stations",
+        "Second · 8 stations",
+      ][floor];
+      for (const station of this.model.extinguishers.stations.filter(
+        (s) => s.floor === floor,
+      )) {
+        options.append(new Option(station.label, station.assetId));
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "egress-label extinguisher-label";
+        button.dataset.extinguisherId = station.assetId;
+        button.textContent = station.assetId;
+        button.title = `${station.location} · PDF p.${station.sourcePage}`;
+        button.onclick = () => this.selectExtinguisher(station.assetId, false);
+        button.addEventListener("pointerdown", (event) => {
+          if (event.button !== 1) return;
+          event.preventDefault();
+          this.canvas.dispatchEvent(
+            new PointerEvent("pointerdown", {
+              pointerId: event.pointerId,
+              pointerType: event.pointerType,
+              isPrimary: event.isPrimary,
+              button: 1,
+              buttons: event.buttons,
+              clientX: event.clientX,
+              clientY: event.clientY,
+              cancelable: true,
+            }),
+          );
+        });
+        this.extinguisherLabelLayer.append(button);
+        this.extinguisherLabelButtons.push({ station, button });
+      }
+      extinguisherSelect.append(options);
+    }
+    this.washroomAssets = new Map();
+    this.model.root.traverse((object) => {
+      if (object.userData.kind === "washroom-point")
+        this.washroomAssets.set(object.userData.assetId, object);
+    });
+    const washroomPoints = document.getElementById("washroomPointSelect");
+    for (const [id, object] of this.washroomAssets)
+      washroomPoints.append(new Option(object.userData.label, id));
     this.setView("overview");
   }
   resize() {
@@ -343,11 +401,13 @@ export class BuildingViewer {
     this.active = active;
     this.labelLayer.hidden = !active;
     this.egressLabelLayer.hidden = !active;
+    this.extinguisherLabelLayer.hidden = !active;
     if (!active) document.getElementById("egressEndpoint").hidden = true;
     this.controls.enabled = active;
     if (active) this.resize();
   }
   setView(view) {
+    this.washroomDetail = false;
     if (["overview", "front", "rear", "left", "right", "roof"].includes(view))
       this.floor = "all";
     if (["plan", "offices"].includes(view) && this.floor === "all")
@@ -396,6 +456,7 @@ export class BuildingViewer {
     );
   }
   setLayer(key, value) {
+    if (key === "lowWalls") this.washroomDetail = false;
     this[key] = value;
     this.applyLayers();
     this.render();
@@ -437,7 +498,9 @@ export class BuildingViewer {
         .add(
           this.view === "plan"
             ? new THREE.Vector3(0, 24, 0.01)
-            : new THREE.Vector3(9, 12, 14),
+            : ["wc", "accessible-wc"].includes(room.furniture)
+              ? new THREE.Vector3(0, 12, 2)
+              : new THREE.Vector3(9, 12, 14),
         );
       this.controls.update();
     }
@@ -448,6 +511,77 @@ export class BuildingViewer {
       label: `${room.id} · ${room.name}`,
     });
     this.render();
+  }
+  showWashroom(roomId) {
+    const room =
+      this.model.rooms.find(
+        (r) => r.id === roomId && ["wc", "accessible-wc"].includes(r.furniture),
+      ) ||
+      this.model.rooms.find(
+        (r) =>
+          r.floor === Number(this.floor === "all" ? "0" : this.floor) &&
+          r.furniture === "wc",
+      );
+    this.view = "offices";
+    this.lowWalls = false;
+    this.washroomDoors = false;
+    this.labels = false;
+    this.systems = false;
+    this.egressPaths = false;
+    this.selectRoom(room.id);
+    this.washroomDetail = true;
+    this.applyLayers();
+    this.render();
+    this.onStateChange();
+  }
+  selectWashroomPoint(id) {
+    const object = this.washroomAssets.get(id);
+    if (!object) return;
+    this.washroomPoints = true;
+    this.systems = true;
+    this.view = "offices";
+    this.setFloor(String(object.userData.floor));
+    this.model.root.updateMatrixWorld(true);
+    object.getWorldPosition(this.controls.target);
+    this.camera.position
+      .copy(this.controls.target)
+      .add(new THREE.Vector3(5, 11, 5));
+    this.controls.update();
+    this.onSelect(object.userData);
+    this.applyLayers();
+    this.render();
+    this.onStateChange();
+  }
+  selectExtinguisher(id, focus = true) {
+    const station = this.model.extinguishers.stations.find(
+      (s) => s.assetId === id,
+    );
+    if (!station) return;
+    this.extinguishers = true;
+    this.setFloor(String(station.floor));
+    if (focus) {
+      this.view = "offices";
+      this.controls.target.set(station.x, station.y + 1.35, station.z);
+      const [nx, nz] = station.normal;
+      this.camera.position.set(
+        station.x + nx * 12,
+        station.y + 4.1,
+        station.z + nz * 12,
+      );
+      this.controls.update();
+    }
+    this.onSelect(station);
+    this.applyLayers();
+    this.render();
+    this.onStateChange();
+  }
+  showExtinguisherPlan() {
+    this.extinguishers = true;
+    this.egressSigns = false;
+    this.egressPaths = false;
+    this.labels = false;
+    this.lowWalls = true;
+    this.setView("plan");
   }
   selectSign(id, focus = true) {
     const sign = this.model.egress.allSigns.find((s) => s.assetId === id);
@@ -569,6 +703,24 @@ export class BuildingViewer {
       button.style.left = `${((point.x + 1) / 2) * width}px`;
       button.style.top = `${((-point.y + 1) / 2) * height}px`;
     }
+    for (const { station, button } of this.extinguisherLabelButtons) {
+      const point = new THREE.Vector3(
+        station.x,
+        station.y + 0.16,
+        station.z,
+      ).project(this.camera);
+      button.hidden = !(
+        this.extinguishers &&
+        this.view === "plan" &&
+        String(station.floor) === this.floor &&
+        Math.abs(point.x) < 0.98 &&
+        Math.abs(point.y) < 0.97 &&
+        point.z > -1 &&
+        point.z < 1
+      );
+      button.style.left = `${((point.x + 1) / 2) * width}px`;
+      button.style.top = `${((-point.y + 1) / 2) * height}px`;
+    }
     const endpoint = document.getElementById("egressEndpoint");
     const currentRoute = this.model.egress.current;
     const endpointX = currentRoute ? currentRoute.side * 21.05 : 2.65;
@@ -586,6 +738,10 @@ export class BuildingViewer {
     endpoint.style.left = `${((endpointPoint.x + 1) / 2) * width}px`;
     endpoint.style.top = `${((-endpointPoint.y + 1) / 2) * height}px`;
     this.canvas.dataset.egressSigns = String(this.egressSigns);
+    this.canvas.dataset.extinguishers = String(this.extinguishers);
+    this.canvas.dataset.washroomPoints = String(this.washroomPoints);
+    this.canvas.dataset.washroomClearances = String(this.washroomClearances);
+    this.canvas.dataset.washroomDoors = String(this.washroomDoors);
     this.canvas.dataset.egressPaths = String(this.egressPaths);
     this.canvas.dataset.egressTrace = currentRoute?.roomId || "";
     this.canvas.dataset.ready = "true";

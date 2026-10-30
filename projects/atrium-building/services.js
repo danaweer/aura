@@ -1,4 +1,6 @@
 /* Connected conceptual air paths; not sized, balanced or commissioned HVAC. */
+import { isWashroom, washroomPlan } from "./washroom-plan.js";
+import { createWashroomPlumbing } from "./washroom-plumbing.js";
 import { FLOORS, CORRIDORS, ENVELOPE, isReserved } from "./layout.js";
 import { ROOF_Y, EAST_ROOF_OPENING } from "./architecture.js";
 import { builder, group, finish } from "./geometry.js";
@@ -97,10 +99,11 @@ export function createBuildingServices({ root, floors, roof }) {
     routes.push({ id, system, points, width, height, group: part });
     return part;
   }
-  function grille(parent, room, type, x, y, z) {
+  function grille(parent, room, type, x, y, z, routeId) {
     const info = {
       roomId: room.id,
       floor: room.floor,
+      assetId: routeId ? `${routeId}-GRILLE` : `${room.id}-${type}-GRILLE`,
       kind: "air-terminal",
       system: type,
       label: `${room.id} · ${type === "exhaust" ? "separate bathroom exhaust" : type === "supply" ? "supply diffuser" : "return grille"}`,
@@ -120,7 +123,12 @@ export function createBuildingServices({ root, floors, roof }) {
         m[type],
         info,
       );
-    terminals.push({ roomId: room.id, system: type, position: [x, y, z] });
+    terminals.push({
+      roomId: room.id,
+      system: type,
+      position: [x, y, z],
+      routeId,
+    });
   }
   for (const floor of FLOORS) {
     const y = floor.index * ENVELOPE.floorHeight;
@@ -155,12 +163,25 @@ export function createBuildingServices({ root, floors, roof }) {
       const s = [cx - 0.65, y + CEILING_Y - 0.035, cz - 0.45];
       // Offset the return lane beyond the retained column line at x=±16.
       const r = [cx + 0.85, y + CEILING_Y - 0.035, cz + 0.55];
-      const holes = (sanitary ? [s] : [s, r]).map(([x, , z]) => ({
-        x1: x - 0.25,
-        x2: x + 0.25,
-        z1: z - 0.25,
-        z2: z + 0.25,
-      }));
+      const washroom = isWashroom(room) ? washroomPlan(room) : null;
+      const extracts = washroom
+        ? washroom.extract.map(({ position }) => [
+            position[0],
+            y + CEILING_Y - 0.035,
+            position[2],
+          ])
+        : [s];
+      const makeUp = washroom
+        ? [washroom.supply[0], y + CEILING_Y - 0.035, washroom.supply[2]]
+        : [cx + 0.45, y + CEILING_Y - 0.035, cz + 0.6];
+      const holes = (sanitary ? [...extracts, makeUp] : [s, r]).map(
+        ([x, , z]) => ({
+          x1: x - 0.25,
+          x2: x + 0.25,
+          z1: z - 0.25,
+          z2: z + 0.25,
+        }),
+      );
       plate(
         ceiling,
         { x1: b.x1 + 0.08, x2: b.x2 - 0.08, z1: b.z1 + 0.08, z2: b.z2 - 0.08 },
@@ -211,12 +232,63 @@ export function createBuildingServices({ root, floors, roof }) {
       if (sanitary) {
         const h = y + 3.83,
           [ex, ez] = SHAFTS[wing].exhaust;
-        // Bathroom exhaust remains separate from recirculated office return air.
-        const points = west
-          ? [[ex, h, ez], [s[0], h, ez], [s[0], h, s[2]], s]
-          : [[ex, h, ez], [ex, h, -2.8], [s[0], h, -2.8], [s[0], h, s[2]], s];
-        route(services, `${room.id}-EXTRACT`, "exhaust", points, 0.15, 0.12);
-        grille(services, { ...room, floor: floor.index }, "exhaust", ...s);
+        // Each cubicle has its own terminal and connected extract branch.
+        for (const [index, position] of extracts.entries()) {
+          const id = `${room.id}-EXTRACT${index ? `-C0${index + 1}` : ""}`;
+          const points = west
+            ? [
+                [ex, h, ez],
+                [position[0], h, ez],
+                [position[0], h, position[2]],
+                position,
+              ]
+            : [
+                [ex, h, ez],
+                [ex, h, -2.8],
+                [position[0], h, -2.8],
+                [position[0], h, position[2]],
+                position,
+              ];
+          route(services, id, "exhaust", points, 0.15, 0.12);
+          grille(
+            services,
+            { ...room, floor: floor.index },
+            "exhaust",
+            ...position,
+            id,
+          );
+          box(
+            services,
+            position[0],
+            h,
+            (position[2] - 2.8) / 2,
+            0.2,
+            0.16,
+            0.08,
+            m.dark,
+            {
+              assetId: `${id}-DAMPER`,
+              roomId: room.id,
+              kind: "balancing-damper",
+              label: `${room.id} accessible extract balancing damper · conceptual`,
+            },
+          );
+        }
+        // Direct tempered make-up reservation; no unapproved corridor-wall grille.
+        route(
+          services,
+          `${room.id}-SUPPLY`,
+          "supply",
+          [
+            [makeUp[0], y + 3.64, 0.8],
+            [makeUp[0], y + 3.64, makeUp[2]],
+            makeUp,
+          ],
+          0.18,
+          0.14,
+          "Tempered washroom make-up air. Negative balance, acoustics and fan duty require design; no office-return connection.",
+        );
+        grille(services, { ...room, floor: floor.index }, "supply", ...makeUp);
       } else {
         for (const [system, position, h] of [
           ["supply", s, y + 3.64],
@@ -317,6 +389,16 @@ export function createBuildingServices({ root, floors, roof }) {
         );
       }
       const [ex, ez] = shaft.exhaust;
+      cylinder(services, ex, y + 3.81, ez, 0.15, 0.28, m.dark, {
+        assetId: `EF-${floor.prefix}-${west ? "A" : "B"}-01`,
+        kind: "washroom-point",
+        floor: floor.index,
+        label: `${wing} sanitary extract fan · planned / unavailable`,
+        detail:
+          "Enable command, running proof and fault are unbound. No airflow or pressure performance has been calculated.",
+        status: "unavailable",
+        source: "model-only",
+      });
       route(
         services,
         `${floor.prefix}-${wing}-EXHAUST-RISER`,
@@ -497,8 +579,10 @@ export function createBuildingServices({ root, floors, roof }) {
           kind: "shaft-weathering",
         });
   }
+  const plumbing = createWashroomPlumbing({ floors, roof, distribution });
   geo.flush();
   return {
+    plumbing,
     ceilings,
     distribution,
     rooftop,

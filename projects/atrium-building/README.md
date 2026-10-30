@@ -46,3 +46,11 @@ The **Exit sign plan** follows the supplied Means of Egress PDF Rev E01: 57 sche
 
 - `egress-plan.js`: PDF sign IDs, viewer-relative chevrons, actual room-door routes and stair-descent coordinates.
 - `egress.js`: physical sign cases/faces and independent route-overlay groups; no new dependencies or telemetry assignments.
+
+## Portable extinguishers
+
+The 27 stations and paired red location signs from PDF F01 are implemented across the existing three floors. See [EXTINGUISHERS.md](EXTINGUISHERS.md) for sheet mappings, mounting assumptions, controls and checks.
+
+## Washroom concept
+
+The six WC suites and three separate accessible WCs follow the supplied washroom reference. See [WASHROOMS.md](WASHROOMS.md) for fitted dimensions, routes, inspection controls and remaining assumptions.

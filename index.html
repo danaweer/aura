@@ -283,6 +283,27 @@
                   <button id="officeViewBtn" type="button" aria-pressed="false">
                     Office cutaway
                   </button>
+                  <button id="washroomViewBtn" type="button">
+                    Washroom detail
+                  </button>
+                  <label
+                    ><input id="washroomClearancesToggle" type="checkbox" /> WC
+                    clearances</label
+                  >
+                  <label
+                    ><input id="washroomDoorsToggle" type="checkbox" /> Open
+                    cubicle doors</label
+                  >
+                  <label
+                    ><input id="washroomPointsToggle" type="checkbox" /> Planned
+                    washroom BMS points</label
+                  >
+                  <select
+                    id="washroomPointSelect"
+                    aria-label="Inspect planned washroom BMS point"
+                  >
+                    <option value="">Washroom BMS · unbound points…</option>
+                  </select>
                   <label
                     ><input id="partitionsToggle" type="checkbox" checked />
                     Partitions</label
@@ -305,6 +326,46 @@
                   >
                 </div>
                 <div id="egressOptions" class="egress-options" hidden>
+                  <div class="egress-actions">
+                    <button id="extinguisherPlanBtn" type="button">
+                      Extinguisher plan
+                    </button>
+                    <label
+                      ><input
+                        id="extinguishersToggle"
+                        type="checkbox"
+                        checked
+                      />
+                      Fire extinguishers + signs</label
+                    >
+                    <select
+                      id="extinguisherSelect"
+                      aria-label="Inspect fire extinguisher station"
+                    >
+                      <option value="">Inspect a fire extinguisher…</option>
+                    </select>
+                  </div>
+                  <p class="egress-basis">
+                    27 stations · PDF F01 · 11 ground / 8 first / 8 second.
+                    <a
+                      href="/projects/atrium-building/reference/extinguishers-f01-p11.pdf"
+                      target="_blank"
+                      rel="noopener"
+                      >Ground ↗</a
+                    >
+                    <a
+                      href="/projects/atrium-building/reference/extinguishers-f01-p12.pdf"
+                      target="_blank"
+                      rel="noopener"
+                      >First ↗</a
+                    >
+                    <a
+                      href="/projects/atrium-building/reference/extinguishers-f01-p13.pdf"
+                      target="_blank"
+                      rel="noopener"
+                      >Second ↗</a
+                    >
+                  </p>
                   <div class="egress-actions">
                     <button id="egressPlanBtn" type="button">
                       Exit sign plan
@@ -386,6 +447,11 @@
                     id="egressLabels"
                     class="building-labels egress-labels"
                     aria-label="Exit sign schedule positions"
+                  ></div>
+                  <div
+                    id="extinguisherLabels"
+                    class="building-labels"
+                    aria-label="PDF fire extinguisher positions"
                   ></div>
                   <div id="egressEndpoint" class="egress-endpoint" hidden>
                     ASSUMED PUBLIC-WAY CONNECTION · VERIFY SITE

@@ -1,5 +1,6 @@
 /* Partitions and furniture derived from layout.js. Service areas remain empty reserves. */
 import * as THREE from "three";
+import { createWashrooms } from "./washrooms.js";
 import { CATEGORIES, CORRIDORS, doorPosition, isReserved } from "./layout.js";
 
 export function createOfficeInteriors(floor, floorHeight) {
@@ -209,13 +210,6 @@ export function createOfficeInteriors(floor, floorHeight) {
     box(furniture, x, 0.852, z, 0.43, 0.015, 0.32, m.sink, info);
     box(furniture, x, 0.95, z - 0.2, 0.035, 0.22, 0.035, m.metal, info);
   }
-  function toilet(room, x, z) {
-    const info = meta(room, "fixture", "WC fixture");
-    box(furniture, x, 0.22, z, 0.43, 0.43, 0.6, m.white, info);
-    box(furniture, x, 0.47, z, 0.48, 0.09, 0.65, m.white, info);
-    box(furniture, x, 0.521, z + 0.05, 0.25, 0.015, 0.34, m.sink, info);
-    box(furniture, x, 0.7, z - 0.27, 0.46, 0.45, 0.13, m.white, info);
-  }
   for (const room of floor.rooms) {
     const b = room.bounds,
       cx = (b.x1 + b.x2) / 2,
@@ -224,7 +218,7 @@ export function createOfficeInteriors(floor, floorHeight) {
       d = b.z2 - b.z1;
     const info = meta(room, "room");
     if (
-      !(room.furniture === "riser" && floor.index > 0) &&
+      room.furniture !== "riser" &&
       !["stairs", "central-stair", "lift"].includes(room.furniture)
     ) {
       const tile = new THREE.Mesh(
@@ -343,41 +337,6 @@ export function createOfficeInteriors(floor, floorHeight) {
         basin(room, b.x1 + 0.9, b.z1 + 0.4);
         meeting(room, 4, cx, cz + 0.55, 1.3);
         break;
-      case "wc": {
-        const mirrored = b.x1 > 0;
-        const x = mirrored ? b.x2 - 0.8 : b.x1 + 0.8;
-        toilet(room, x, b.z1 + 1.2);
-        toilet(room, x, b.z1 + 3.8);
-        box(
-          furniture,
-          x,
-          0.75,
-          b.z1 + 2.6,
-          1.5,
-          1.5,
-          0.1,
-          m.wall,
-          meta(room, "fixture", "WC privacy partition"),
-        );
-        basin(room, mirrored ? b.x1 + 0.65 : b.x2 - 0.65, b.z1 + 1.2);
-        basin(room, mirrored ? b.x1 + 0.65 : b.x2 - 0.65, b.z1 + 3.8);
-        break;
-      }
-      case "accessible-wc":
-        toilet(room, b.x1 + 0.8, b.z2 - 0.8);
-        basin(room, b.x2 - 0.65, b.z1 + 0.6);
-        box(
-          furniture,
-          b.x1 + 0.43,
-          0.82,
-          b.z2 - 0.8,
-          0.035,
-          0.035,
-          0.7,
-          m.metal,
-          meta(room, "fixture", "Indicative grab rail"),
-        );
-        break;
       case "janitor":
         basin(room, cx, b.z1 + 0.45);
         break;
@@ -397,6 +356,13 @@ export function createOfficeInteriors(floor, floorHeight) {
         break;
     }
   }
+  const washrooms = createWashrooms({
+    floor,
+    root,
+    walls,
+    furniture,
+    inventory,
+  });
   // Build each shared partition once, split at every room edge and doorway.
   const edgeMap = new Map();
   for (const room of floor.rooms) {
@@ -489,7 +455,9 @@ export function createOfficeInteriors(floor, floorHeight) {
   for (const room of floor.rooms)
     for (const opening of room.doors) {
       if (
-        ["lift", "central-stair"].includes(room.furniture) ||
+        ["lift", "central-stair", "wc", "accessible-wc"].includes(
+          room.furniture,
+        ) ||
         opening.exterior
       )
         continue;
@@ -634,5 +602,6 @@ export function createOfficeInteriors(floor, floorHeight) {
     zones,
     rooms: floor.rooms,
     inventory,
+    washrooms,
   };
 }

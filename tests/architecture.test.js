@@ -149,7 +149,9 @@ function onSegment(point, a, b) {
 test("every room air terminal connects to its matching spine and continuous roof-fed riser", () => {
   const routes = model.services.routes;
   for (const terminal of model.services.terminals) {
-    const id = `${terminal.roomId}-${terminal.system === "exhaust" ? "EXTRACT" : terminal.system.toUpperCase()}`;
+    const id =
+      terminal.routeId ||
+      `${terminal.roomId}-${terminal.system === "exhaust" ? "EXTRACT" : terminal.system.toUpperCase()}`;
     const branch = routes.find((r) => r.id === id);
     assert.ok(branch, id);
     assert.deepEqual(branch.points.at(-1), terminal.position);
