@@ -1080,7 +1080,7 @@ async function activateProject(project) {
               if (space) {
                 $("roomSelect").value = space.id;
                 const capacity = space.count
-                  ? ` · ${space.count} ${["wc", "accessible-wc"].includes(space.furniture) ? "WCs" : ["desks", "ceo", "bms"].includes(space.furniture) ? "desks" : "seats"}`
+                  ? ` · ${space.count} ${["wc", "accessible-wc"].includes(space.furniture) ? (space.count === 1 ? "WC" : "WCs") : ["desks", "ceo", "bms"].includes(space.furniture) ? "desks" : "seats"}`
                   : "";
                 $("buildingPartInfo").textContent =
                   `${level} · ${space.area} m²${capacity}. ${space.note || "Furnished according to the supplied schematic office plan."}`;
@@ -1108,6 +1108,7 @@ async function activateProject(project) {
 function updateBuildingControls() {
   if (!buildingViewer) return;
   const state = buildingViewer;
+  $("roomSelect").value = state.selectedRoomId;
   $("buildingViewSelect").value = state.view;
   $("floorSelect").value = String(state.floor);
   $("selectedFloorLabel").textContent =

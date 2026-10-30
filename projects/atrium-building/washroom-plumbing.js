@@ -3,10 +3,15 @@
 import * as THREE from "three";
 import { builder, group, finish } from "./geometry.js";
 import { WASHROOM_PLANS } from "./washroom-plan.js";
+import { ALL_ROOMS, ENVELOPE, FLOORS } from "./layout.js";
 export function createWashroomPlumbing({ floors, roof, distribution }) {
   const geo = builder(),
     routes = [],
     stacks = [];
+  const batches = new Map();
+  const segmentGeometry = new THREE.CylinderGeometry(1, 1, 1, 12);
+  const roomFloors = new Map(ALL_ROOMS.map((room) => [room.id, room.floor]));
+  const roofY = ENVELOPE.floorHeight * FLOORS.length;
   const ventRoof = group(roof, "Washroom soil vents", {
     kind: "plumbing",
     layer: "systems",
@@ -24,31 +29,45 @@ export function createWashroomPlumbing({ floors, roof, distribution }) {
       kind: "plumbing",
       system,
       roomId,
+      floor: roomFloors.get(roomId),
       label: `${id} · ${system} reservation`,
       detail:
         "Conceptual connected pipe route. Sizes, gradients, penetrations, supply and drainage connections are unverified.",
     };
-    const part = group(parent, id, data);
+    // Group by floor and system. Per-instance IDs preserve individual pipe picking.
+    if (!batches.has(parent)) batches.set(parent, new Map());
+    const systems = batches.get(parent);
+    if (!systems.has(system))
+      systems.set(system, {
+        matrices: [],
+        data: [],
+        group: group(parent, `${system} pipe segments`, {
+          kind: "plumbing",
+          system,
+          floor: data.floor,
+          label: `${system} washroom distribution`,
+        }),
+      });
+    const batch = systems.get(system),
+      part = batch.group;
     for (let i = 1; i < points.length; i++) {
       const a = new THREE.Vector3(...points[i - 1]),
         b = new THREE.Vector3(...points[i]),
         delta = b.clone().sub(a);
       if (delta.length() < 0.001) continue;
       const c = a.add(b).multiplyScalar(0.5);
-      const object = geo.cylinder(
-        part,
-        c.x,
-        c.y,
-        c.z,
-        radius,
-        delta.length(),
-        m[system],
-        data,
-      );
-      object.quaternion.setFromUnitVectors(
+      const rotation = new THREE.Quaternion().setFromUnitVectors(
         new THREE.Vector3(0, 1, 0),
-        delta.normalize(),
+        delta.clone().normalize(),
       );
+      batch.matrices.push(
+        new THREE.Matrix4().compose(
+          c,
+          rotation,
+          new THREE.Vector3(radius, delta.length(), radius),
+        ),
+      );
+      batch.data.push({ ...data, segment: i - 1 });
     }
     routes.push({ id, system, points, radius, roomId, group: part });
     return part;
@@ -62,7 +81,7 @@ export function createWashroomPlumbing({ floors, roof, distribution }) {
   );
   for (const p of WASHROOM_PLANS) {
     const room = p.room,
-      y = room.floor * 4.2,
+      y = room.floor * ENVELOPE.floorHeight,
       part = layers[room.floor];
     const at = (u, v, h) => {
       const [x, , z] = p.point(u, v);
@@ -76,7 +95,7 @@ export function createWashroomPlumbing({ floors, roof, distribution }) {
       "waste",
       [
         [sx, y, sz],
-        [sx, y + 4.2, sz],
+        [sx, y + ENVELOPE.floorHeight, sz],
       ],
       0.055,
       room.id,
@@ -91,7 +110,7 @@ export function createWashroomPlumbing({ floors, roof, distribution }) {
         system,
         [
           [sx, y, sz + offset],
-          [sx, y + 4.2, sz + offset],
+          [sx, y + ENVELOPE.floorHeight, sz + offset],
         ],
         0.012,
         room.id,
@@ -228,13 +247,13 @@ export function createWashroomPlumbing({ floors, roof, distribution }) {
         `${room.id}-VENT`,
         "vent",
         [
-          [sx, 12.6, sz],
-          [sx, 13.45, sz],
+          [sx, roofY, sz],
+          [sx, roofY + 0.85, sz],
         ],
         0.055,
         room.id,
       );
-      geo.cylinder(vent, sx, 13.48, sz, 0.1, 0.05, m.metal, {
+      geo.cylinder(vent, sx, roofY + 0.88, sz, 0.1, 0.05, m.metal, {
         kind: "plumbing",
         label: "Conceptual vent terminal · roof penetration to coordinate",
       });
@@ -287,6 +306,19 @@ export function createWashroomPlumbing({ floors, roof, distribution }) {
       stacks.push({ roomId: room.id, x: sx, z: sz, boundary, connection });
     }
   }
+  for (const systems of batches.values())
+    for (const [system, batch] of systems) {
+      const mesh = new THREE.InstancedMesh(
+        segmentGeometry,
+        m[system],
+        batch.matrices.length,
+      );
+      batch.matrices.forEach((matrix, i) => mesh.setMatrixAt(i, matrix));
+      mesh.instanceMatrix.needsUpdate = true;
+      mesh.userData = { ...batch.group.userData, instances: batch.data };
+      mesh.castShadow = true;
+      batch.group.add(mesh);
+    }
   geo.flush();
   return { layers, routes, stacks, roof: ventRoof };
 }

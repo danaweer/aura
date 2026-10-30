@@ -362,7 +362,7 @@ try {
       await page.locator("#washroomViewBtn").click();
       await expect(page.locator("#buildingPartTitle")).toContainText(id);
       await expect(page.locator("#buildingPartInfo")).toContainText(
-        code === "W02" ? "1 WCs" : "3 WCs",
+        code === "W02" ? "1 WC" : "3 WCs",
       );
       await expect(page.locator("#lowWallsToggle")).not.toBeChecked();
       await expect(page.locator("#buildingCanvas")).toHaveAttribute(
@@ -375,6 +375,26 @@ try {
       });
     }
   }
+  // Leaving the washroom detail must restore ordinary same-floor partitions.
+  await expect(page.locator("#buildingCanvas")).toHaveAttribute(
+    "data-washroom-detail",
+    "true",
+  );
+  await page.locator("#roomSelect").selectOption("L2-04");
+  await expect(page.locator("#buildingCanvas")).toHaveAttribute(
+    "data-washroom-detail",
+    "false",
+  );
+  await expect(page.locator("#washroomViewBtn")).toHaveAttribute(
+    "aria-pressed",
+    "false",
+  );
+  await expect(page.locator("#buildingCanvas")).toHaveAttribute(
+    "data-room-selection",
+    "L2-04",
+  );
+  await page.locator("#roomSelect").selectOption("L2-W02");
+  await page.locator("#washroomViewBtn").click();
   await page.locator("#washroomDoorsToggle").check();
   await expect(page.locator("#buildingCanvas")).toHaveAttribute(
     "data-washroom-doors",
@@ -388,6 +408,10 @@ try {
   );
   await expect(page.locator("#roomTelemetry")).toBeHidden();
   await expect(page.locator("#washroomPointsToggle")).toBeChecked();
+  await expect(page.locator("#buildingCanvas")).toHaveAttribute(
+    "data-room-selection",
+    "",
+  );
   await page.locator("#scene").screenshot({
     path: path.join(root, "test-results", "washroom-services-and-points.png"),
   });
@@ -708,6 +732,10 @@ try {
   await expect(page.locator("#buildingPartInfo")).toContainText(
     "actual side-wall door",
   );
+  await expect(page.locator("#buildingCanvas")).toHaveAttribute(
+    "data-room-selection",
+    "",
+  );
   await page.locator("#scene").screenshot({
     path: path.join(root, "test-results", "egress-stair-discharge-sign.png"),
   });
@@ -806,6 +834,16 @@ try {
     path: path.join(root, "test-results", "projects.png"),
     fullPage: true,
   });
+  await page
+    .getByRole("button", { name: "Open Meeting room / 01", exact: true })
+    .click();
+  await page.locator("#openProjectsBtn").click();
+  await page
+    .getByRole("button", { name: "Open Atrium building / 01", exact: true })
+    .click();
+  await expect(page.locator("#roomSelect")).toHaveValue("G-M01");
+  await expect(page.locator("#traceExitBtn")).toBeEnabled();
+  await page.locator("#openProjectsBtn").click();
   await page
     .getByRole("button", { name: "Open Meeting room / 01", exact: true })
     .click();

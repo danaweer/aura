@@ -3,8 +3,8 @@
   "name": "Atrium building / 01",
   "code": "AB-01",
   "category": "Furnished office building",
-  "description": "Three retained furnished floors within a coordinated stone-and-charcoal exterior: private bathroom/service façades, solid wing roofs, a glazed atrium, CEO and boardroom balconies, and a landscaped level entrance. Rooftop equipment and connected ceiling air paths are conceptual reservations; detailed engineering and fire systems remain future work. Exit signage follows the supplied Rev E01 schedule, with optional candidate routes to an assumed public-way connection.",
-  "stage": "04 · Architecture + egress wayfinding",
+  "description": "Three furnished office floors with a central glazed atrium, private stone fa\u00e7ades, solid wing roofs, CEO and boardroom balconies, and a landscaped entrance. Includes 57 scheduled exit signs, 27 portable extinguisher stations with paired signs, and nine refitted washrooms. HVAC, plumbing and rooftop equipment are conceptual; planned BMS points are unavailable until connected.",
+  "stage": "05 \u00b7 Washrooms + safety concepts",
   "preview": "/projects/atrium-building/preview.svg",
   "model": {
     "kind": "atrium-building",
@@ -16,13 +16,16 @@
     "interior_revision": "A",
     "layout_source": "Supplied schematic office concept plans",
     "exterior_source": "Existing model dimensions; attached exterior image used for visual character only",
-    "services_status": "Connected conceptual air routes and rooftop placeholders; not sized or commissioned",
+    "services_status": "Connected conceptual air and washroom plumbing routes, sanitary extraction and rooftop placeholders; not sized or commissioned",
     "egress_status": "57 scheduled sign positions plus supplemental stair/non-exit identification and candidate outdoor routes; concept only, not installation-approved",
-    "egress_source": "Means of Egress.pdf, Rev E01, 28 Oct 2026, pp. 7–9"
+    "egress_source": "Means of Egress.pdf, Rev E01, 28 Oct 2026, pp. 7\u20139",
+    "extinguisher_status": "27 paired FE/SG stations: 11 ground, 8 first, 8 second; PDF F01 placements, selection and ratings unverified",
+    "washroom_status": "Six main WC suites and three separate accessible WCs; 21 toilets and 15 basins; accessibility and engineering review pending",
+    "bms_status": "84 planned washroom/fan asset locations; unavailable / model-only, no device bindings"
   },
   "requirements": [
     {
-      "name": "Three furnished floors within the 40 × 24 m concept footprint",
+      "name": "Three furnished floors within the 40 \u00d7 24 m concept footprint",
       "status": "established"
     },
     {
@@ -35,15 +38,27 @@
     },
     {
       "name": "MEP networks, fire protection, sizing and original-building coordination",
-      "status": "next stage"
+      "status": "Air and washroom plumbing concepts modeled; sizing, sprinklers and original-building coordination remain future work"
     },
     {
-      "name": "Opaque private/service façades, solid roofs, ceiling layers, balconies and site",
+      "name": "Opaque private/service fa\u00e7ades, solid roofs, ceiling layers, balconies and site",
       "status": "concept modeled; dimensions and engineering assumptions documented"
     },
     {
       "name": "Exit wayfinding and doorway-to-discharge inspection from PDF Rev E01",
       "status": "concept modeled; public-way connection, atrium strategy and installation review remain pending"
+    },
+    {
+      "name": "Portable extinguishers and paired identification signs from PDF F01",
+      "status": "27 stations concept modeled; final equipment selection and coverage review pending"
+    },
+    {
+      "name": "Mirrored washrooms, separate accessible WCs and connected sanitary services",
+      "status": "9 rooms concept modeled; fixture count, accessibility and engineering remain unverified"
+    },
+    {
+      "name": "Washroom BMS asset inspection and honest unavailable states",
+      "status": "84 planned locations; no live sensor, meter, fan or assistance-system binding"
     }
   ],
   "iot": [],

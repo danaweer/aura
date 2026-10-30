@@ -32,6 +32,7 @@ export class BuildingViewer {
     this.washroomDoors = false;
     this.washroomPoints = false;
     this.washroomDetail = false;
+    this.selectedRoomId = "";
     this.extinguisherLabelLayer = document.getElementById("extinguisherLabels");
     this.extinguisherLabelButtons = [];
     this.egressLabelLayer = document.getElementById("egressLabels");
@@ -174,7 +175,7 @@ export class BuildingViewer {
           hit.object.userData.instances?.[hit.instanceId] ||
           hit.object.userData;
         if (part.kind === "egress-sign") this.selectSign(part.assetId, false);
-        else if (part.kind === "washroom-point") onSelect(part);
+        else if (part.kind === "washroom-point") this.inspectAsset(part);
         else if (["fire-extinguisher", "extinguisher-sign"].includes(part.kind))
           this.selectExtinguisher(part.stationId || part.assetId, false);
         else if (
@@ -182,7 +183,7 @@ export class BuildingViewer {
           this.model.rooms.some((room) => room.id === part.roomId)
         )
           this.selectRoom(part.roomId, false);
-        else onSelect(part);
+        else this.inspectAsset(part);
       }
     });
     canvas.addEventListener("keydown", (event) => {
@@ -467,17 +468,30 @@ export class BuildingViewer {
     this.renderer.shadowMap.enabled = this.view !== "plan";
     applyBuildingVisibility(this.model, this);
   }
+  clearSelection() {
+    if (!this.selection) return;
+    this.scene.remove(this.selection);
+    this.selection.geometry.dispose();
+    this.selection.material.dispose();
+    this.selection = null;
+  }
+  inspectAsset(part) {
+    this.clearSelection();
+    this.washroomDetail = false;
+    this.onSelect(part);
+    this.applyLayers();
+    this.render();
+    this.onStateChange();
+  }
   selectRoom(id, focus = true) {
     const room = this.model.rooms.find((item) => item.id === id);
     if (!room) return;
+    this.selectedRoomId = room.id;
+    this.washroomDetail = false;
     if (String(room.floor) !== this.floor) this.setFloor(String(room.floor));
     const b = room.bounds,
       y = room.floor * FLOOR_HEIGHT;
-    if (this.selection) {
-      this.scene.remove(this.selection);
-      this.selection.geometry.dispose();
-      this.selection.material.dispose();
-    }
+    this.clearSelection();
     const points = [
       [b.x1, y + 0.08, b.z1],
       [b.x2, y + 0.08, b.z1],
@@ -490,6 +504,7 @@ export class BuildingViewer {
     );
     this.selection.renderOrder = 10;
     this.selection.userData.floor = room.floor;
+    this.selection.userData.roomId = room.id;
     this.scene.add(this.selection);
     if (focus) {
       this.controls.target.set((b.x1 + b.x2) / 2, y + 0.5, (b.z1 + b.z2) / 2);
@@ -510,6 +525,7 @@ export class BuildingViewer {
       roomId: room.id,
       label: `${room.id} · ${room.name}`,
     });
+    this.applyLayers();
     this.render();
   }
   showWashroom(roomId) {
@@ -537,6 +553,7 @@ export class BuildingViewer {
   selectWashroomPoint(id) {
     const object = this.washroomAssets.get(id);
     if (!object) return;
+    this.clearSelection();
     this.washroomPoints = true;
     this.systems = true;
     this.view = "offices";
@@ -557,6 +574,7 @@ export class BuildingViewer {
       (s) => s.assetId === id,
     );
     if (!station) return;
+    this.clearSelection();
     this.extinguishers = true;
     this.setFloor(String(station.floor));
     if (focus) {
@@ -586,6 +604,7 @@ export class BuildingViewer {
   selectSign(id, focus = true) {
     const sign = this.model.egress.allSigns.find((s) => s.assetId === id);
     if (!sign) return;
+    this.clearSelection();
     this.egressSigns = true;
     this.setFloor(String(sign.floor));
     if (focus) {
@@ -742,6 +761,10 @@ export class BuildingViewer {
     this.canvas.dataset.washroomPoints = String(this.washroomPoints);
     this.canvas.dataset.washroomClearances = String(this.washroomClearances);
     this.canvas.dataset.washroomDoors = String(this.washroomDoors);
+    this.canvas.dataset.washroomDetail = String(this.washroomDetail);
+    this.canvas.dataset.roomSelection = this.selection?.visible
+      ? this.selection.userData.roomId
+      : "";
     this.canvas.dataset.egressPaths = String(this.egressPaths);
     this.canvas.dataset.egressTrace = currentRoute?.roomId || "";
     this.canvas.dataset.ready = "true";

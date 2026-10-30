@@ -227,3 +227,79 @@ test("washroom overlays obey floor isolation, doors remain closed by default and
   }
   applyBuildingVisibility(model, state);
 });
+
+test("batched pipe rendering retains segment coordinates, stable asset IDs, floor isolation and picking", () => {
+  const meshes = [];
+  const roots = [
+    ...model.services.plumbing.layers,
+    model.services.plumbing.roof,
+  ];
+  for (const root of roots)
+    root.traverse((o) => {
+      if (o.isInstancedMesh && o.geometry.type === "CylinderGeometry")
+        meshes.push(o);
+    });
+  const routes = new Map(model.services.plumbing.routes.map((r) => [r.id, r]));
+  const expected = model.services.plumbing.routes.reduce(
+    (n, r) =>
+      n +
+      r.points
+        .slice(1)
+        .filter(
+          (p, i) => Math.hypot(...p.map((v, a) => v - r.points[i][a])) > 0.001,
+        ).length,
+    0,
+  );
+  assert.equal(
+    meshes.reduce((n, m) => n + m.count, 0),
+    expected,
+  );
+  assert.ok(
+    meshes.length < 20,
+    "Pipe segments remain batched instead of hundreds of individual meshes",
+  );
+  for (const mesh of meshes)
+    for (let i = 0; i < mesh.count; i++) {
+      const metadata = mesh.userData.instances[i],
+        route = routes.get(metadata.assetId);
+      assert.ok(route, metadata.assetId);
+      const matrix = new THREE.Matrix4();
+      mesh.getMatrixAt(i, matrix);
+      const start = new THREE.Vector3(0, -0.5, 0).applyMatrix4(matrix);
+      const end = new THREE.Vector3(0, 0.5, 0).applyMatrix4(matrix);
+      assert.ok(
+        start.distanceTo(new THREE.Vector3(...route.points[metadata.segment])) <
+          0.0001,
+      );
+      assert.ok(
+        end.distanceTo(
+          new THREE.Vector3(...route.points[metadata.segment + 1]),
+        ) < 0.0001,
+      );
+      assert.ok(Number.isInteger(metadata.floor));
+    }
+  applyBuildingVisibility(model, {
+    ...state,
+    floor: "1",
+    systems: true,
+    partitions: false,
+    furniture: false,
+  });
+  model.root.updateMatrixWorld(true);
+  const route = routes.get("L1-W01-SOIL-STACK"),
+    p = route.points[0];
+  const from = [p[0] + 0.3, p[1] + 2, p[2]],
+    to = [p[0] - 0.1, p[1] + 2, p[2]];
+  const visible = hit(from, to)[0];
+  assert.equal(data(visible).assetId, route.id);
+  assert.equal(data(visible).floor, 1);
+  applyBuildingVisibility(model, {
+    ...state,
+    floor: "1",
+    systems: false,
+    partitions: false,
+    furniture: false,
+  });
+  assert.ok(!hit(from, to).some((h) => data(h).kind === "plumbing"));
+  applyBuildingVisibility(model, state);
+});
