@@ -147,6 +147,7 @@ try {
   await page.locator("#systemsToggle").check();
   // Middle-drag translates the model without rotating/scaling it or selecting an asset.
   async function checkMiddlePan(ids, overLabel = false) {
+    await page.locator("#buildingCanvas").scrollIntoViewIfNeeded();
     const labels = ids.map((id) =>
       page.locator(`#buildingLabels button[data-room-id="${id}"]`),
     );
@@ -445,6 +446,332 @@ try {
   });
   await page.locator("#systemsToggle").uncheck();
   await page.locator("#roomSelect").selectOption("G-M01");
+  await page.locator("#equipmentOptions summary").click();
+  await expect(page.locator("#equipmentSelect option")).toHaveCount(25);
+  await page.locator("#equipmentClearancesToggle").check();
+  await page.locator("#equipmentPortsToggle").check();
+  const equipmentIds = await page
+    .locator("#equipmentSelect option")
+    .evaluateAll((options) => options.map((o) => o.value).filter(Boolean));
+  for (const id of equipmentIds) {
+    await page.locator("#equipmentSelect").selectOption(id);
+    await expect(page.locator("#buildingPartInfo")).toContainText(
+      "SIMULATED · MODEL ONLY / NOT CONNECTED",
+    );
+    await expect(page.locator("#buildingCanvas")).toHaveAttribute(
+      "data-equipment-selection",
+      id,
+    );
+    await expect(page.locator("#buildingCanvas")).toHaveAttribute(
+      "data-roof-visible",
+      "false",
+    );
+    if (
+      [
+        "FP-01",
+        "BS-G-01",
+        "MDB-G-01",
+        "SR-G-01",
+        "AHU-L1-01",
+        "AHU-L2-01",
+        "ROOF-West-COOL",
+        "RES-FIRE-TANK",
+      ].includes(id)
+    )
+      await page.locator("#scene").screenshot({
+        path: path.join(root, "test-results", `equipment-${id}.png`),
+      });
+  }
+  await page.locator("#equipmentPortsToggle").uncheck();
+  await page.locator("#equipmentClearancesToggle").uncheck();
+  for (const id of ["FP-01", "MDB-G-01", "SR-G-01", "AHU-L1-01", "AHU-L2-01"]) {
+    await page.locator("#equipmentSelect").selectOption(id);
+    await page.locator("#equipmentEyeBtn").click();
+    await expect(page.locator("#buildingCanvas")).toHaveAttribute(
+      "data-equipment-eye",
+      "true",
+    );
+    await page.locator("#scene").screenshot({
+      path: path.join(root, "test-results", `equipment-${id}-eye.png`),
+    });
+  }
+  await page.locator("#equipmentConnectionsToggle").check();
+  await page.locator("#equipmentSelect").selectOption("AHU-L2-01");
+  await page.locator("#equipmentConnectionsToggle").check();
+  await page.locator("#scene").screenshot({
+    path: path.join(root, "test-results", "equipment-upper-AHU-routes.png"),
+  });
+  await page.locator("#equipmentToggle").uncheck();
+  await expect(page.locator("#buildingCanvas")).toHaveAttribute(
+    "data-equipment",
+    "false",
+  );
+  await page.locator("#equipmentSelect").selectOption("MDB-G-01");
+  await expect(page.locator("#equipmentToggle")).toBeChecked();
+  await page.locator("#fullscreenBtn").click();
+  await expect(
+    page.locator("#fullscreenControls #equipmentSelect"),
+  ).toBeVisible();
+  await page.locator("#equipmentPortsToggle").check();
+  await expect(page.locator("#buildingCanvas")).toHaveAttribute(
+    "data-equipment-ports",
+    "true",
+  );
+  await page.locator("#fullscreenBtn").click();
+  await page.locator("#equipmentPortsToggle").uncheck();
+  await page.locator("#equipmentConnectionsToggle").uncheck();
+  await page.locator("#roomLabelsToggle").check();
+  await page.locator("#roomSelect").selectOption("G-M01");
+  console.log(
+    "PASS P01 equipment in all reserved rooms, labelled ports, separate clearance/connection layers, ground yard, eye-level views and fullscreen inspection",
+  );
+  await page.locator("#equipmentOptions summary").click();
+  await page.locator("#serviceRouteOptions summary").click();
+  const serviceToggles = page.locator("[data-service-layer]");
+  await expect(serviceToggles).toHaveCount(14);
+  await page.locator("#servicePlanBtn").click();
+  await expect(page.locator("#buildingCanvas")).toHaveAttribute(
+    "data-view",
+    "plan",
+  );
+  for (const toggle of await serviceToggles.all()) await toggle.uncheck();
+  await page.locator('[data-service-layer="fire"]').check();
+  await expect(
+    page.locator('.service-label[data-node="FR"]:visible'),
+  ).toHaveCount(1);
+  await expect(page.locator(".extinguisher-label:visible")).toHaveCount(0);
+  for (const [floor, label] of [
+    ["0", "ground"],
+    ["1", "first"],
+    ["2", "second"],
+  ]) {
+    await page.locator("#floorSelect").selectOption(floor);
+    await expect(page.locator("#buildingCanvas")).toHaveAttribute(
+      "data-roof-visible",
+      "false",
+    );
+    await expect(page.locator("#buildingCanvas")).toHaveAttribute(
+      "data-ceilings-visible",
+      "false",
+    );
+    await page.locator("#scene").screenshot({
+      path: path.join(root, "test-results", `service-fire-${label}.png`),
+    });
+  }
+  await page.locator("#serviceSelect").selectOption("FC-L2-01");
+  await expect(page.locator("#buildingPartInfo")).toContainText("PDF R01 p.1");
+  await expect(page.locator("#buildingPartInfo")).toContainText(
+    "CONCEPTUAL / NOT CONNECTED",
+  );
+  await page.locator("#servicePlanBtn").click();
+  for (const toggle of await serviceToggles.all()) await toggle.uncheck();
+  for (const system of ["supply", "return", "exhaust"])
+    await page.locator(`[data-service-layer="${system}"]`).check();
+  for (const [floor, label] of [
+    ["1", "first"],
+    ["2", "second"],
+  ]) {
+    await page.locator("#floorSelect").selectOption(floor);
+    await page.locator("#scene").screenshot({
+      path: path.join(root, "test-results", `service-air-${label}.png`),
+    });
+  }
+  await page.locator("#serviceSelect").selectOption("AHU-G-RES");
+  await expect(page.locator("#buildingPartInfo")).toContainText("PDF R01 p.2");
+  await page.locator("#scene").screenshot({
+    path: path.join(root, "test-results", "service-ground-ahu-yard.png"),
+  });
+  await page.locator("#servicePlanBtn").click();
+  await page.locator("#floorSelect").selectOption("1");
+  for (const toggle of await serviceToggles.all()) await toggle.uncheck();
+  for (const system of ["refrigerant", "condensate"])
+    await page.locator(`[data-service-layer="${system}"]`).check();
+  await page.locator("#serviceEnvelopesToggle").check();
+  await page.locator("#scene").screenshot({
+    path: path.join(root, "test-results", "service-vrf-condensate-first.png"),
+  });
+  await page.locator("#serviceEnvelopesToggle").uncheck();
+  await page.locator("#serviceShaftsToggle").uncheck();
+  await page.locator("#serviceSelect").selectOption("L1-East-VRF-1-TO-MAIN");
+  await expect(page.locator("#buildingPartInfo")).toContainText(
+    "VRF refrigerant pairs",
+  );
+  await page.locator("#scene").screenshot({
+    path: path.join(root, "test-results", "service-vrf-offset-detail.png"),
+  });
+  await page.locator("#serviceShaftsToggle").check();
+  await page.locator("#servicePlanBtn").click();
+  for (const toggle of await serviceToggles.all()) await toggle.uncheck();
+  for (const system of ["cold", "hot", "waste", "vent"])
+    await page.locator(`[data-service-layer="${system}"]`).check();
+  await page.locator("#floorSelect").selectOption("2");
+  await page.locator("#scene").screenshot({
+    path: path.join(root, "test-results", "service-plumbing-second.png"),
+  });
+  for (const toggle of await serviceToggles.all()) await toggle.uncheck();
+  for (const system of ["power", "data", "alarm"])
+    await page.locator(`[data-service-layer="${system}"]`).check();
+  await page.locator("#floorSelect").selectOption("1");
+  await page.locator("#scene").screenshot({
+    path: path.join(root, "test-results", "service-power-data-first.png"),
+  });
+  await page.locator("#fullscreenBtn").click();
+  await expect(
+    page.locator('#fullscreenControls [data-service-layer="power"]'),
+  ).toBeVisible();
+  await page.locator('[data-service-layer="power"]').uncheck();
+  await expect
+    .poll(() =>
+      page
+        .locator("#buildingCanvas")
+        .evaluate((c) => JSON.parse(c.dataset.serviceLayers).power),
+    )
+    .toBe(false);
+  await page.locator("#serviceAccessToggle").check();
+  await expect(page.locator("#buildingCanvas")).toHaveAttribute(
+    "data-service-access",
+    "true",
+  );
+  await page.locator("#serviceAccessToggle").uncheck();
+  await page.locator("#fullscreenBtn").click();
+  const pdf = await page.request.get(
+    `${url}/projects/atrium-building/reference/main-service-routes.pdf`,
+  );
+  assert.equal(pdf.status(), 200);
+  assert.ok((await pdf.body()).subarray(0, 5).equals(Buffer.from("%PDF-")));
+  for (const toggle of await serviceToggles.all())
+    await toggle.setChecked(
+      !["alarm", "smoke"].includes(
+        await toggle.getAttribute("data-service-layer"),
+      ),
+    );
+  await page.locator("#systemsToggle").uncheck();
+  await page.locator("#egressSignsToggle").check();
+  await page.locator("#roomLabelsToggle").check();
+  await page.locator("#serviceRouteOptions summary").click();
+  await page.locator("#roomSelect").selectOption("G-M01");
+  console.log(
+    "PASS R01 fire/air/VRF/condensate/wet/power/data layers, three-floor plans, source inspection, fullscreen controls and archived PDF",
+  );
+  await page.locator("#deviceOptions summary").click();
+  assert.ok((await page.locator("#deviceSelect option").count()) > 400);
+  await page.locator("#devicePlanBtn").click();
+  for (const [floor, label, q] of [
+    ["0", "ground", 3],
+    ["1", "first", 2],
+    ["2", "second", 3],
+  ]) {
+    await page.locator("#floorSelect").selectOption(floor);
+    await expect(page.locator("#buildingCanvas")).toHaveAttribute(
+      "data-device-plan",
+      "true",
+    );
+    await expect(
+      page.locator('.device-label[data-device-type="Q"]:visible'),
+    ).toHaveCount(q);
+    const overlaps = await page
+      .locator(".device-label:visible")
+      .evaluateAll((labels) => {
+        const boxes = labels.map((b) => ({
+          id: b.dataset.deviceId,
+          box: b.getBoundingClientRect(),
+        }));
+        return boxes.flatMap((a, i) =>
+          boxes
+            .slice(i + 1)
+            .filter(
+              (b) =>
+                a.box.left < b.box.right &&
+                a.box.right > b.box.left &&
+                a.box.top < b.box.bottom &&
+                a.box.bottom > b.box.top,
+            )
+            .map((b) => `${a.id}/${b.id}`),
+        );
+      });
+    assert.deepEqual(overlaps, [], `D02 ${label} symbols stay legible`);
+    await expect(page.locator("#buildingCanvas")).toHaveAttribute(
+      "data-roof-visible",
+      "false",
+    );
+    await expect(page.locator("#buildingCanvas")).toHaveAttribute(
+      "data-ceilings-visible",
+      "false",
+    );
+    await page.locator("#scene").screenshot({
+      path: path.join(root, "test-results", `devices-d02-${label}.png`),
+    });
+  }
+  for (const id of [
+    "Q-L1-07-01",
+    "Q-L2-04-01",
+    "W-G-W04-01",
+    "P-G-M01-SUC-01",
+    "P-L2-M01-FILTER-DP-01",
+  ]) {
+    await page.locator("#deviceSelect").selectOption(id);
+    await expect(page.locator("#buildingCanvas")).toHaveAttribute(
+      "data-device-selection",
+      id,
+    );
+    await expect(page.locator("#buildingPartInfo")).toContainText(
+      "UNCONNECTED / UNAVAILABLE",
+    );
+    await page.locator("#scene").screenshot({
+      path: path.join(root, "test-results", `devices-d02-${id}.png`),
+    });
+  }
+  await page.locator("#deviceConnectionsToggle").check();
+  await expect(page.locator("#buildingCanvas")).toHaveAttribute(
+    "data-device-connections",
+    "true",
+  );
+  await page.locator("#deviceConnectionsToggle").uncheck();
+  await page.locator("#deviceSelect").selectOption("Q-L1-07-01");
+  await page.locator("#devicesToggle").uncheck();
+  await expect(page.locator("#buildingCanvas")).toHaveAttribute(
+    "data-devices",
+    "false",
+  );
+  await page.locator("#deviceSelect").selectOption("Q-L2-04-01");
+  await expect(page.locator("#devicesToggle")).toBeChecked();
+  await page.locator("#fullscreenBtn").click();
+  await expect(page.locator("#fullscreenControls #deviceSelect")).toBeVisible();
+  await page.locator('[data-device-category="sensors"]').uncheck();
+  await expect
+    .poll(() =>
+      page
+        .locator("#buildingCanvas")
+        .evaluate((c) => JSON.parse(c.dataset.deviceCategories).sensors),
+    )
+    .toBe(false);
+  await page.locator('[data-device-category="sensors"]').check();
+  await page.locator("#devicePlanBtn").click();
+  await page.locator("#deviceRoutesToggle").check();
+  await expect(page.locator("#buildingCanvas")).toHaveAttribute(
+    "data-device-routes",
+    "true",
+  );
+  await page.screenshot({
+    path: path.join(root, "test-results", "devices-d02-fullscreen.png"),
+  });
+  await page.locator("#deviceRoutesToggle").uncheck();
+  await page.locator("#fullscreenBtn").click();
+  const devicePdf = await page.request.get(
+    `${url}/projects/atrium-building/reference/device-positions-d02.pdf`,
+  );
+  assert.equal(devicePdf.status(), 200);
+  assert.ok(
+    (await devicePdf.body()).subarray(0, 5).equals(Buffer.from("%PDF-")),
+  );
+  await page.locator('[data-device-category="zones"]').uncheck();
+  await page.locator("#deviceOptions summary").click();
+  await page.locator("#roomSelect").selectOption("G-M01");
+  await page.locator("#roomLabelsToggle").check();
+  await page.locator("#egressSignsToggle").check();
+  console.log(
+    "PASS D02 floor-specific O/T/Q/W and S/R/E plans, instrumentation, honest unconnected data, field diagrams, fullscreen categories, selection and PDF",
+  );
   await expect(page.locator("#floorSelect")).toHaveValue("0");
   await expect(page.locator("#buildingPartTitle")).toContainText("Fire pump");
   await expect(page.locator("#buildingPartInfo")).toContainText("27 m²");
@@ -489,10 +816,19 @@ try {
   const trainingLabel = await page
     .locator('#buildingLabels button[data-room-id="G-05"]')
     .boundingBox();
+  const trainingCanvas = await page.locator("#buildingCanvas").boundingBox();
   await page.locator("#roomLabelsToggle").uncheck();
+  await page.locator("#buildingCanvas").scrollIntoViewIfNeeded();
+  const currentCanvas = await page.locator("#buildingCanvas").boundingBox();
   await page.mouse.click(
-    trainingLabel.x + trainingLabel.width / 2,
-    trainingLabel.y + trainingLabel.height / 2,
+    trainingLabel.x +
+      trainingLabel.width / 2 +
+      currentCanvas.x -
+      trainingCanvas.x,
+    trainingLabel.y +
+      trainingLabel.height / 2 +
+      currentCanvas.y -
+      trainingCanvas.y,
   );
   await expect(page.locator("#buildingPartTitle")).toContainText("G-05");
   await expect(page.locator("#buildingPartInfo")).toContainText("16 seats");

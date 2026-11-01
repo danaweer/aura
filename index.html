@@ -286,6 +286,146 @@
                   <button id="washroomViewBtn" type="button">
                     Washroom detail
                   </button>
+                  <details id="deviceOptions" class="equipment-options">
+                    <summary>Room devices · D02</summary>
+                    <div class="equipment-options-body">
+                      <label
+                        ><input id="devicesToggle" type="checkbox" checked />
+                        Proposed room devices</label
+                      >
+                      <button id="devicePlanBtn" type="button">
+                        Device position plan
+                      </button>
+                      <select
+                        id="deviceSelect"
+                        aria-label="Inspect D02 device candidate"
+                      >
+                        <option value="">
+                          Inspect room device or plant probe…
+                        </option>
+                      </select>
+                      <div
+                        id="deviceCategoryControls"
+                        class="service-layer-controls"
+                      ></div>
+                      <label
+                        ><input
+                          id="deviceLabelsToggle"
+                          type="checkbox"
+                          checked
+                        />
+                        Plan symbols</label
+                      >
+                      <label
+                        ><input id="deviceRoutesToggle" type="checkbox" /> Show
+                        existing service routes in device plan</label
+                      >
+                      <label
+                        ><input id="deviceConnectionsToggle" type="checkbox" />
+                        Proposed field-connection diagrams</label
+                      >
+                      <p class="service-route-note">
+                        S / R / E are physical terminals, not sensors. O / T / Q
+                        / W and P are unconnected candidates. L outlines are
+                        work zones; fire coverage remains pending.
+                      </p>
+                      <a
+                        href="/projects/atrium-building/reference/device-positions-d02.pdf"
+                        target="_blank"
+                        rel="noopener"
+                        >Device positions PDF · D02 ↗</a
+                      >
+                    </div>
+                  </details>
+                  <details id="serviceRouteOptions" class="equipment-options">
+                    <summary>Main service routes · R01</summary>
+                    <div class="equipment-options-body">
+                      <button id="servicePlanBtn" type="button">
+                        Service route plan
+                      </button>
+                      <select
+                        id="serviceSelect"
+                        aria-label="Inspect service route or reservation"
+                      >
+                        <option value="">Inspect main, source or shaft…</option>
+                      </select>
+                      <div
+                        id="serviceLayerControls"
+                        class="service-layer-controls"
+                      ></div>
+                      <label
+                        ><input
+                          id="serviceShaftsToggle"
+                          type="checkbox"
+                          checked
+                        />
+                        Shaft / plant reservations</label
+                      >
+                      <label
+                        ><input id="serviceAccessToggle" type="checkbox" />
+                        Maintenance access volumes</label
+                      >
+                      <label
+                        ><input id="serviceEnvelopesToggle" type="checkbox" />
+                        Service insulation envelopes</label
+                      >
+                      <p class="service-route-note">
+                        Solid routes are candidate mains. Dashed routes are
+                        examples or unresolved reservations. No sprinkler
+                        coverage or calculated service sizes.
+                      </p>
+                      <a
+                        href="/projects/atrium-building/reference/main-service-routes.pdf"
+                        target="_blank"
+                        rel="noopener"
+                        >Main service routes PDF ↗</a
+                      >
+                    </div>
+                  </details>
+                  <details id="equipmentOptions" class="equipment-options">
+                    <summary>Equipment placement</summary>
+                    <div class="equipment-options-body">
+                      <label
+                        ><input id="equipmentToggle" type="checkbox" checked />
+                        Placed equipment</label
+                      >
+                      <select
+                        id="equipmentSelect"
+                        aria-label="Inspect P01 equipment"
+                      >
+                        <option value="">
+                          Inspect pumps, boards, racks or AHUs…
+                        </option>
+                      </select>
+                      <button id="equipmentEyeBtn" type="button">
+                        Eye-level equipment
+                      </button>
+                      <label
+                        ><input
+                          id="equipmentClearancesToggle"
+                          type="checkbox"
+                        />
+                        Equipment clearances</label
+                      >
+                      <label
+                        ><input id="equipmentPortsToggle" type="checkbox" />
+                        Connection ports</label
+                      >
+                      <label
+                        ><input
+                          id="equipmentConnectionsToggle"
+                          type="checkbox"
+                        />
+                        R01 service routes</label
+                      >
+                      <a
+                        href="/projects/atrium-building/reference/equipment-placement-p01.pdf"
+                        target="_blank"
+                        rel="noopener"
+                        >Equipment guide ↗</a
+                      >
+                    </div>
+                  </details>
                   <label
                     ><input id="washroomClearancesToggle" type="checkbox" /> WC
                     clearances</label

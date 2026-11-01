@@ -4,6 +4,7 @@ import { WASHROOM_ROOF_PENETRATIONS } from "./washroom-plan.js";
 import { ENVELOPE, FLOORS, ALL_ROOMS } from "./layout.js";
 import { builder, group, finish } from "./geometry.js";
 import { stairLayout, ROOF_LANDING_Y } from "./stairs.js";
+import { SERVICE_FACADE_OPENINGS } from "./main-service-plan.js";
 
 export const ROOF_Y = ENVELOPE.floorHeight * FLOORS.length;
 export const EAST_ROOF_OPENING = { x1: 11.96, x2: 13.94, z1: -4.92, z2: -4.28 };
@@ -90,6 +91,65 @@ export function createArchitecture({ root, floors, roof, materials }) {
 
   function wallPieces(parent, wall, start, end, bottom, top, material, info) {
     if (end - start < 0.015 || top - bottom < 0.015) return;
+    if (
+      wall.side === "back" &&
+      wall.axis === "X" &&
+      Math.abs(wall.fixed + 12) < 0.3 &&
+      !info.serviceCut
+    ) {
+      const holes = SERVICE_FACADE_OPENINGS.filter(
+        (p) =>
+          p.floor === info.floor &&
+          p.x + p.w / 2 > start &&
+          p.x - p.w / 2 < end &&
+          p.y + p.h / 2 > bottom &&
+          p.y - p.h / 2 < top,
+      );
+      if (holes.length) {
+        const xs = [
+          ...new Set([
+            start,
+            end,
+            ...holes.flatMap((p) => [
+              Math.max(start, p.x - p.w / 2),
+              Math.min(end, p.x + p.w / 2),
+            ]),
+          ]),
+        ].sort((a, b) => a - b);
+        const ys = [
+          ...new Set([
+            bottom,
+            top,
+            ...holes.flatMap((p) => [
+              Math.max(bottom, p.y - p.h / 2),
+              Math.min(top, p.y + p.h / 2),
+            ]),
+          ]),
+        ].sort((a, b) => a - b);
+        for (let i = 1; i < xs.length; i++)
+          for (let j = 1; j < ys.length; j++) {
+            const x = (xs[i - 1] + xs[i]) / 2,
+              y = (ys[j - 1] + ys[j]) / 2;
+            if (
+              !holes.some(
+                (p) =>
+                  Math.abs(x - p.x) < p.w / 2 && Math.abs(y - p.y) < p.h / 2,
+              )
+            )
+              wallPieces(
+                parent,
+                wall,
+                xs[i - 1],
+                xs[i],
+                ys[j - 1],
+                ys[j],
+                material,
+                { ...info, serviceCut: true },
+              );
+          }
+        return;
+      }
+    }
     const alongX = wall.axis === "X",
       middle = (start + end) / 2;
     box(
@@ -1002,13 +1062,17 @@ export function createArchitecture({ root, floors, roof, materials }) {
       }),
     );
   }
-  box(entrance, 0, 3.45, 12.25, 9.8, 0.18, 3.8, m.charcoal, {
+  const canopy = group(entrance, "Entrance canopy assembly", {
+    kind: "canopy",
+    floor: 0,
+  });
+  box(canopy, 0, 3.45, 12.25, 9.8, 0.18, 3.8, m.charcoal, {
     kind: "canopy",
     label: "Slim entrance canopy",
   });
-  box(entrance, 0, 3.34, 12.25, 9.5, 0.035, 3.5, m.wood);
+  box(canopy, 0, 3.34, 12.25, 9.5, 0.035, 3.5, m.wood);
   for (const x of [-3.7, -1.8, 1.8, 3.7])
-    box(entrance, x, 3.3, 12.35, 0.65, 0.025, 0.12, m.light, {
+    box(canopy, x, 3.3, 12.35, 0.65, 0.025, 0.12, m.light, {
       kind: "entrance-light",
     });
   auraSign(entrance, 0, 4.0, 11.22, 0.85);
@@ -1136,6 +1200,7 @@ export function createArchitecture({ root, floors, roof, materials }) {
     balconyGroups,
     site,
     entrance,
+    canopy,
     drainage,
     doorways,
     facadePanels,

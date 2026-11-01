@@ -4,8 +4,34 @@ import { ProjectLibrary, renderProjectDetails } from "./project-ui.js";
 import { buildMeetingRoom } from "./projects/meeting-room/model.js";
 import { TelemetrySession, mergeSamples, chartSegments } from "./telemetry.js";
 import { ViewerFullscreen } from "./viewer-fullscreen.js";
+import { ROUTE_SYSTEMS } from "./projects/atrium-building/main-service-plan.js";
+import { DEVICE_CATEGORIES } from "./projects/atrium-building/device-plan.js";
 
 const $ = (id) => document.getElementById(id);
+for (const [category, labelText] of Object.entries(DEVICE_CATEGORIES)) {
+  const label = document.createElement("label"),
+    input = document.createElement("input");
+  input.type = "checkbox";
+  input.dataset.deviceCategory = category;
+  input.checked = !["zones", "pending"].includes(category);
+  input.onchange = () =>
+    buildingViewer?.setDeviceCategory(category, input.checked);
+  label.append(input, document.createTextNode(labelText));
+  $("deviceCategoryControls").append(label);
+}
+for (const [system, definition] of Object.entries(ROUTE_SYSTEMS)) {
+  const label = document.createElement("label"),
+    input = document.createElement("input"),
+    swatch = document.createElement("span");
+  input.type = "checkbox";
+  input.dataset.serviceLayer = system;
+  input.checked = !["alarm", "smoke"].includes(system);
+  swatch.className = "service-layer-swatch";
+  swatch.style.backgroundColor = `#${definition.color.toString(16).padStart(6, "0")}`;
+  input.onchange = () => buildingViewer?.setServiceLayer(system, input.checked);
+  label.append(input, swatch, document.createTextNode(definition.label));
+  $("serviceLayerControls").append(label);
+}
 const scene = $("scene");
 const canvas = $("roomCanvas");
 const ctx = canvas.getContext("2d");
@@ -1043,6 +1069,27 @@ async function activateProject(project) {
                 : part.floor === 0
                   ? "Ground floor"
                   : `Level 0${part.floor}`;
+            if (part.kind === "room-device") {
+              $("deviceSelect").value = part.assetId;
+              const connection = part.connection;
+              $("buildingPartInfo").textContent =
+                `${level} · PDF D02 p.${part.sourcePage} · ${part.designStatus.toUpperCase()} · UNCONNECTED / UNAVAILABLE. ${part.isSensor ? `Proposed measurements: ${(part.measurements || []).join(", ") || "interface signals only"}. ` : "Physical asset / study; not a sensor reading. "}${part.detail} ${connection ? `Connection: ${connection.target} · ${connection.status}. ` : ""}${part.signals?.length ? `Separate signals: ${part.signals.join("; ")}. ` : ""}${part.type === "Q" ? "Relative humidity is optional only if supported by future hardware. " : ""}${part.legacyAssetId ? `Retained asset/point ID: ${part.legacyAssetId}. ` : ""}No live value, command or operating proof is provided.`;
+              updateBuildingControls();
+              return;
+            }
+            if (part.kind === "equipment" || part.kind === "equipment-port") {
+              $("equipmentSelect").value = part.equipmentId || part.assetId;
+              $("buildingPartInfo").textContent =
+                `${level} · ${part.roomId === "YARD" ? "Rear service yard" : part.roomId} · SIMULATED · MODEL ONLY / NOT CONNECTED. ${part.detail} ${part.portName ? `Selected port: ${part.portName}. ` : ""}Ports: ${(part.ports || []).join(", ") || "space reservation only"}. Fire-system integration is monitoring-only; no start/stop or live operating state is available.`;
+              updateBuildingControls();
+              return;
+            }
+            if (part.kind === "main-service") {
+              $("buildingPartInfo").textContent =
+                `${level} · PDF R01 p.${part.sourcePage} · ${ROUTE_SYSTEMS[part.system].label} · CONCEPTUAL / NOT CONNECTED. ${part.detail}`;
+              updateBuildingControls();
+              return;
+            }
             if (part.kind === "washroom-point") {
               $("washroomPointSelect").value = part.assetId;
               $("buildingPartInfo").textContent =
@@ -1108,7 +1155,15 @@ async function activateProject(project) {
 function updateBuildingControls() {
   if (!buildingViewer) return;
   const state = buildingViewer;
+  $("deviceSelect").value = state.selectedDeviceId;
+  for (const input of document.querySelectorAll("[data-device-category]"))
+    input.checked = state.deviceCategories[input.dataset.deviceCategory];
+  $("serviceSelect").value = state.selectedServiceId;
+  for (const input of document.querySelectorAll("[data-service-layer]"))
+    input.checked = state.serviceLayers[input.dataset.serviceLayer];
   $("roomSelect").value = state.selectedRoomId;
+  $("equipmentSelect").value = state.selectedEquipmentId;
+  $("equipmentEyeBtn").setAttribute("aria-pressed", String(state.equipmentEye));
   $("buildingViewSelect").value = state.view;
   $("floorSelect").value = String(state.floor);
   $("selectedFloorLabel").textContent =
@@ -1145,12 +1200,23 @@ function updateBuildingControls() {
     ["roomLabelsToggle", "labels"],
     ["ceilingsToggle", "ceilings"],
     ["systemsToggle", "systems"],
+    ["serviceShaftsToggle", "serviceShafts"],
+    ["serviceAccessToggle", "serviceAccess"],
+    ["serviceEnvelopesToggle", "serviceEnvelopes"],
     ["egressSignsToggle", "egressSigns"],
     ["egressPathsToggle", "egressPaths"],
     ["extinguishersToggle", "extinguishers"],
     ["washroomClearancesToggle", "washroomClearances"],
     ["washroomDoorsToggle", "washroomDoors"],
     ["washroomPointsToggle", "washroomPoints"],
+    ["equipmentToggle", "equipment"],
+    ["equipmentClearancesToggle", "equipmentClearances"],
+    ["equipmentPortsToggle", "equipmentPorts"],
+    ["equipmentConnectionsToggle", "equipmentConnections"],
+    ["devicesToggle", "devices"],
+    ["deviceLabelsToggle", "deviceLabels"],
+    ["deviceRoutesToggle", "deviceRoutes"],
+    ["deviceConnectionsToggle", "deviceConnections"],
   ])
     $(id).checked = state[key];
   const chosenRoom = state.model.rooms.find(
@@ -1220,18 +1286,47 @@ for (const [id, key] of [
   ["roomLabelsToggle", "labels"],
   ["ceilingsToggle", "ceilings"],
   ["systemsToggle", "systems"],
+  ["serviceShaftsToggle", "serviceShafts"],
+  ["serviceAccessToggle", "serviceAccess"],
+  ["serviceEnvelopesToggle", "serviceEnvelopes"],
   ["egressSignsToggle", "egressSigns"],
   ["egressPathsToggle", "egressPaths"],
   ["extinguishersToggle", "extinguishers"],
   ["washroomClearancesToggle", "washroomClearances"],
   ["washroomDoorsToggle", "washroomDoors"],
   ["washroomPointsToggle", "washroomPoints"],
+  ["equipmentToggle", "equipment"],
+  ["equipmentClearancesToggle", "equipmentClearances"],
+  ["equipmentPortsToggle", "equipmentPorts"],
+  ["equipmentConnectionsToggle", "equipmentConnections"],
+  ["devicesToggle", "devices"],
+  ["deviceLabelsToggle", "deviceLabels"],
+  ["deviceRoutesToggle", "deviceRoutes"],
+  ["deviceConnectionsToggle", "deviceConnections"],
 ])
   $(id).onchange = (event) => {
     buildingViewer?.setLayer(key, event.target.checked);
     updateBuildingControls();
   };
 $("egressPlanBtn").onclick = () => buildingViewer?.showExitPlan();
+$("devicePlanBtn").onclick = () => buildingViewer?.showDevicePlan();
+$("deviceSelect").onchange = (event) => {
+  if (event.target.value) buildingViewer?.selectDevice(event.target.value);
+};
+$("servicePlanBtn").onclick = () => buildingViewer?.showServicePlan();
+$("serviceSelect").onchange = (event) => {
+  if (event.target.value) buildingViewer?.selectService(event.target.value);
+};
+$("equipmentSelect").onchange = (event) => {
+  if (event.target.value) buildingViewer?.selectEquipment(event.target.value);
+};
+$("equipmentEyeBtn").onclick = () =>
+  buildingViewer?.selectEquipment(
+    $("equipmentSelect").value || "FP-01",
+    true,
+    null,
+    true,
+  );
 $("washroomViewBtn").onclick = () =>
   buildingViewer?.showWashroom($("roomSelect").value);
 $("washroomPointSelect").onchange = (event) => {

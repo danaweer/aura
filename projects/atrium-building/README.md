@@ -15,6 +15,7 @@ The existing model is the dimensional source: 40 × 24 m footprint, two 15 m win
 - `stairs.js`: shared stair-core geometry for floor-level landings, half-landings, flights, roof arrival and coordinated slab openings.
 - `architecture.js`: room-aware opaque walls/windows, balconies, solid roof assemblies/access, drainage, entrance and site.
 - `services.js`: suspended ceilings/lights/access panels, connected air-distribution paths and rooftop equipment placeholders.
+- `device-plan.js` and `devices.js`: D02 room-device candidates, equipment instrumentation, lighting work zones and explicit unconnected data.
 - `geometry.js`: reusable instanced boxes, beams, cylinders and plates with per-instance selection metadata.
 - `visibility.js`: shared visibility rules and ancestor-aware selection filtering, also exercised in Node tests.
 - `archive/shell-v1.js`: preserved phase-one architectural model before office-plan changes.
@@ -25,20 +26,20 @@ Bathroom, stair, plant, electrical, server and archive exterior walls are fully 
 
 Roofs, ceilings and services are independent groups. Floor isolation hides upper/lower floors, roofs, ceilings and exterior cladding; invisible ancestors are excluded from picking. The Concept services toggle controls rooftop placeholders and connected supply/return/exhaust paths. The Service reserves toggle separately reveals planning volumes. Existing device assignments, server polling, saved room and telemetry behavior are unchanged.
 
-The ground fire-pump, water/mechanical, electrical and server/UPS rooms, upper AHU reserves and IDF rooms retain their bounds, IDs and access, without fitted equipment. Rear external doors open directly to the clear service strip; a screened refuse enclosure is set farther back. The west rear yard remains an empty future plant reservation. No equipment sits on the atrium skylight.
+P01 equipment and R01 routes now occupy the retained service rooms and rear-yard reservations. Room bounds, IDs and access remain. Rear external doors open directly to the clear service strip; a screened refuse enclosure sits farther back. No equipment is placed on the atrium skylight.
 
 ## Modeling assumptions requiring later coordination
 
 - The source model's 40 × 24 m envelope and existing column grid are retained, but remain unsurveyed. External cladding is approximately 280 mm deep; the façade bands visually conceal slab edges and ceiling zones.
 - Wing roof slab datum is 12.6 m, with a conceptual 240 mm slab, 180 mm insulation layer and shallow waterproof finish rising about 80 mm from rear to front. Parapets/coping, rear outlets and visible external downpipes represent drainage intent. Roof falls, waterproofing, overflow provision and drainage sizing need detailed design.
 - Both outer stair cores now have complete landings at the actual occupied-floor datums: 0, 4.2 and 8.4 m. Corridor doors retain their positions and open 90° onto those landings. Flights turn at half-storey landings at the rear, rather than placing a half-storey landing behind each corridor door. Ground exterior exits move to the outer side walls at the ground landing; other rear service doors are unchanged. Stairwell cutouts and landings share one geometry definition. Roof arrival is approximately 12.9525 m, level with the maintenance walkway. Small roof-access enclosures keep the upper-flight opening weather-covered and unobstructed above; they are maintenance access, not a fourth occupied floor. Stair dimensions, guarding, structure and egress compliance remain to be engineered.
-- Open-top louver screens contain generic cooling units and AHUs on support-base placeholders. A central maintenance aisle and continuous roof-access approaches remain clear. The east exhaust route is kept outside the roof stair enclosure. Cooling units represent heat rejection; AHUs have distinct outdoor-air intakes. Exhaust discharges are visually separated and raised. No capacities, acoustic limits, ventilation rates or safe dispersion distances have been calculated.
-- The existing east HVAC compartment carries conceptual supply, return and a separate sanitary-exhaust route through coordinated slab/roof openings. The west has no reserved air shaft: a new external supply/return chase at approximately x=−9, z=−12.52 and a separate sanitary-exhaust chase at x=−20.48, z=−2.8 avoid the wet riser and rear service doors. Weathering, shaft segregation, penetration sealing, dampers and detailed structural openings are not designed.
-- Ceilings are near 3.1 m above each floor. Supply routes center at 3.64 m, returns at 3.38 m and sanitary exhaust at 3.83 m, above occupied space and below existing slab undersides. Branches connect to their corresponding main routes and terminals; bathroom exhaust does not join office return air. Tests check retained column and roof-maintenance clearances. Unmodeled beams, hangers, insulation, pressure losses, balancing, transfer-air paths and fire/smoke strategy still require engineering.
+- Roof screens, maintenance aisles, roof access and separate sanitary outlets are retained. Earlier roof-AHU alternatives and roof-fed comfort-air routes are superseded and hidden by R01. Floor AHUs serve first/second floors, with a separate ground-yard ventilation reservation. Condensers remain heat-rejection placeholders, not fresh-air supplies.
+- R01 uses the existing east HVAC compartment and distinct proposed electrical/data/fire-alarm containment zones; it adds FR beside the left wet zone and WR aligned with the right sanitary stack. Proposed space, support and penetration protection are not approved. The earlier west chase shell is retained, but is not asserted to supply the current ventilation model.
+- Ceilings remain near 3.1 m. R01 assigns separate conceptual service levels and local crossing offsets, retaining terminal positions and independent bathroom extraction. See [MAIN-SERVICES.md](MAIN-SERVICES.md) for the dimensions, packed allowances and unresolved supports, barriers, sizing, slopes and access.
 - Each second-floor balcony is 6 × 2.5 m and connects directly to its intended retained room (`L2-01` CEO, `L2-04` boardroom). Sliding-door openings are 1.25 m wide and clear the existing furniture. Slabs, steel cantilever/bracket supports, guarding, a small fall, threshold channel and external drain routes show intent only. Cantilever capacity, tie-backs, thermal bridges, guard design, threshold accessibility and waterproof detailing are unverified.
 - The conventional 1.4 m entrance is alongside the retained revolving door. The site assumes level ground at the entrance datum and a roughly 51 × 42 m paved setting, without a site survey or boundary information. Landscaping and furniture stay outside the central approach and rear service-door access. Site drainage and real accessible gradients must be coordinated later.
 
-This is an architectural and systems concept, not construction documentation or a code-certified design. No fire protection, pump/sprinkler network or new IoT integration has been installed. The existing MXCHIP stays with the preserved meeting-room project.
+This is an architectural and systems concept, not construction documentation or a code-certified design. Fire main/pump route reservations are conceptual; no installed or hydraulically designed sprinkler network or new IoT integration is asserted. The existing MXCHIP stays with the preserved meeting-room project.
 
 ## Exit wayfinding
 
@@ -54,3 +55,15 @@ The 27 stations and paired red location signs from PDF F01 are implemented acros
 ## Washroom concept
 
 The six WC suites and three separate accessible WCs follow the supplied washroom reference. See [WASHROOMS.md](WASHROOMS.md) for fitted dimensions, routes, inspection controls and remaining assumptions.
+
+## P01 equipment
+
+Reserved rooms now contain the proposed equipment envelopes from the four-page equipment guide. See [EQUIPMENT.md](EQUIPMENT.md) for placements, access reservations, control layers, retained HVAC concepts and unresolved engineering assumptions.
+
+## R01 main service routes
+
+The four-page routing PDF is implemented with separate fire, air, VRF/condensate, wet-service, power, data and pending fire-alarm/smoke layers. See [MAIN-SERVICES.md](MAIN-SERVICES.md) for sheet mapping, controls, modeling assumptions and verification. Expand **Main service routes · R01** in the existing or fullscreen controls.
+
+## D02 room device positions
+
+All four pages of the device-position guide are mapped into the existing rooms and actual equipment. Expand **Room devices · D02** → **Device position plan** to inspect ground, first and second floors, with independent sensor, terminal, light, switch, plant and study layers. All device data remains unconnected/unavailable. See [DEVICES.md](DEVICES.md) for source mapping, retained BMS IDs, placement adaptations and pending design items.

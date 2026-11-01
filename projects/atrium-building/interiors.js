@@ -1,7 +1,13 @@
-/* Partitions and furniture derived from layout.js. Service areas remain empty reserves. */
+/* Retained partitions/furniture. Equipment is populated separately from P01. */
 import * as THREE from "three";
 import { createWashrooms } from "./washrooms.js";
-import { CATEGORIES, CORRIDORS, doorPosition, isReserved } from "./layout.js";
+import {
+  CATEGORIES,
+  CORRIDORS,
+  doorPosition,
+  isReserved,
+  ROOM_FLOOR_FINISH,
+} from "./layout.js";
 
 export function createOfficeInteriors(floor, floorHeight) {
   const root = new THREE.Group();
@@ -79,6 +85,9 @@ export function createOfficeInteriors(floor, floorHeight) {
       ? new THREE.LineLoop(geo, new THREE.LineBasicMaterial({ color }))
       : new THREE.Line(geo, new THREE.LineBasicMaterial({ color }));
     object.userData = info;
+    // Room reservation outlines are diagrams; their generous line hit radius
+    // must not intercept selection of the equipment placed inside the room.
+    object.raycast = () => {};
     parent.add(object);
     return object;
   }
@@ -222,10 +231,10 @@ export function createOfficeInteriors(floor, floorHeight) {
       !["stairs", "central-stair", "lift"].includes(room.furniture)
     ) {
       const tile = new THREE.Mesh(
-        new THREE.BoxGeometry(w - 0.12, 0.018, d - 0.12),
+        new THREE.BoxGeometry(w - 0.12, ROOM_FLOOR_FINISH.thickness, d - 0.12),
         material(CATEGORIES[room.category].color),
       );
-      tile.position.set(cx, 0.014, cz);
+      tile.position.set(cx, ROOM_FLOOR_FINISH.centerY, cz);
       tile.receiveShadow = true;
       tile.userData = info;
       zones.add(tile);
@@ -471,7 +480,9 @@ export function createOfficeInteriors(floor, floorHeight) {
       const hingeX = alongX ? x - opening.width / 2 : x,
         hingeZ = alongX ? z : z - opening.width / 2;
       const rotation =
-        room.furniture === "stairs" && ["E", "W"].includes(opening.side)
+        (room.furniture === "stairs" ||
+          (room.id.endsWith("-M01") && floor.index > 0)) &&
+        ["E", "W"].includes(opening.side)
           ? opening.side === "E"
             ? Math.PI
             : 0

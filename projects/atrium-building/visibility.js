@@ -30,6 +30,23 @@ export function applyBuildingVisibility(model, state) {
         child === model.egress.selectedOutdoor || !model.egress.current;
   }
   model.roof.visible = state.roof && !opened;
+  if (model.equipment) {
+    const shown = state.equipment !== false;
+    model.equipment.layers.forEach((g) => (g.visible = shown));
+    model.equipment.yard.visible = shown && (!isolated || state.floor === "0");
+    for (const a of model.equipment.assets) {
+      if (a.ports) a.ports.visible = !!state.equipmentPorts;
+      if (a.clearanceGroup)
+        a.clearanceGroup.visible = !!state.equipmentClearances;
+    }
+    model.equipment.connections.forEach(
+      (g) =>
+        (g.visible =
+          shown && !!state.equipmentConnections && !model.mainServices),
+    );
+    model.equipment.roofConnections.visible =
+      shown && !!state.equipmentConnections && !model.mainServices;
+  }
   model.yard.visible = state.services && (!isolated || state.floor === "0");
   model.architecture.facades.forEach(({ exterior }) => {
     exterior.visible = !interior;
@@ -49,7 +66,91 @@ export function applyBuildingVisibility(model, state) {
       door.object.rotation.y = state.washroomDoors ? door.openAngle : 0;
   });
   model.services.riserShell.visible = !opened;
+  if (model.mainServices) {
+    const settings = state.serviceLayers || {};
+    const enabled = (system) =>
+      settings[system === "tempered" ? "hot" : system] !== false;
+    for (const layer of model.mainServices.layers)
+      for (const [system, g] of Object.entries(layer))
+        g.visible = state.systems && enabled(system);
+    for (const [system, g] of Object.entries(model.mainServices.roofLayers))
+      g.visible = state.systems && enabled(system);
+    model.mainServices.groundPlant.visible =
+      state.systems &&
+      state.equipment !== false &&
+      (enabled("supply") || enabled("return"));
+    for (const a of model.mainServices.assets.filter(
+      (a) => a.role === "indoor-reservation",
+    ))
+      a.object.visible = state.equipment !== false;
+    for (const g of [
+      ...model.services.distribution,
+      model.services.rooftop,
+      model.services.plumbing.roof,
+    ])
+      g.traverse((part) => {
+        if (part.isGroup && part.userData.system)
+          part.visible = enabled(part.userData.system);
+      });
+    for (const g of model.services.legacyAir) g.visible = false;
+    model.root.traverse((g) => {
+      if (g.isGroup && ["insulation", "access"].includes(g.userData.diagram))
+        g.visible =
+          g.userData.diagram === "insulation"
+            ? !!state.serviceEnvelopes
+            : !!state.serviceAccess;
+    });
+    model.mainServices.reservations.forEach((r) => {
+      if (!r.data.diagram) r.object.visible = state.serviceShafts !== false;
+    });
+  }
   model.architecture.drainage.visible = !opened;
+  if (model.architecture.canopy) model.architecture.canopy.visible = !opened;
+  if (model.devices) {
+    const active = state.devices === true,
+      settings = state.deviceCategories || {},
+      enabled = (c) => settings[c] !== false;
+    for (const layer of model.devices.layers)
+      for (const [category, g] of Object.entries(layer))
+        g.visible = active && enabled(category);
+    model.devices.roofStudies.visible = active && enabled("pending");
+    for (const layer of model.devices.connectionLayers) {
+      layer.visible = active && !!state.deviceConnections;
+      for (const child of layer.children)
+        child.visible = enabled(child.userData.category);
+    }
+    for (const alias of model.devices.aliases)
+      alias.wrapper.visible =
+        !!state.washroomPoints && !(active && enabled(alias.record.category));
+    for (const layer of model.services.lighting)
+      layer.visible = active ? enabled("lighting") : state.ceilings && !opened;
+    // Reset the optional diagram-only inspection state on every update.
+    for (const r of model.services.routes)
+      r.group.visible =
+        !r.superseded && state.serviceLayers?.[r.system] !== false;
+    for (const part of model.services.plumbing.layers) part.visible = true;
+    for (const terminal of model.services.terminalGroups)
+      terminal.visible =
+        state.serviceLayers?.[terminal.userData.system] !== false &&
+        !(state.devicePlanMode && !terminal.userData.deviceId);
+    if (state.devicePlanMode && !state.deviceRoutes) {
+      for (const layer of model.mainServices.layers)
+        for (const g of Object.values(layer)) g.visible = false;
+      for (const r of model.services.routes) r.group.visible = false;
+      for (const part of model.services.plumbing.layers) part.visible = false;
+      for (const part of model.services.distribution)
+        for (const g of part.children)
+          if (g.name === "Sanitary fan and damper reservations")
+            g.visible = false;
+    }
+    for (const part of model.services.distribution)
+      for (const g of part.children)
+        if (
+          g.name === "Sanitary fan and damper reservations" &&
+          !state.devicePlanMode
+        )
+          g.visible = state.serviceLayers?.exhaust !== false;
+  }
   model.architecture.site.visible =
     !isolated || (!interior && state.floor === "0");
   model.architecture.balconies.visible = !isolated || state.floor === "2";

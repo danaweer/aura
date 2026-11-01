@@ -3,8 +3,8 @@
   "name": "Atrium building / 01",
   "code": "AB-01",
   "category": "Furnished office building",
-  "description": "Three furnished office floors with a central glazed atrium, private stone fa\u00e7ades, solid wing roofs, CEO and boardroom balconies, and a landscaped entrance. Includes 57 scheduled exit signs, 27 portable extinguisher stations with paired signs, and nine refitted washrooms. HVAC, plumbing and rooftop equipment are conceptual; planned BMS points are unavailable until connected.",
-  "stage": "05 \u00b7 Washrooms + safety concepts",
+  "description": "Three furnished office floors with a central glazed atrium, private stone façades, solid wing roofs, CEO and boardroom balconies, and a landscaped entrance. Includes 57 scheduled exit signs, 27 portable extinguisher stations with paired signs, and nine refitted washrooms. HVAC, plumbing and rooftop equipment are conceptual; planned BMS points are unavailable until connected. P01 adds proposed pumps/controllers, domestic booster, electrical boards, racks/UPS, upper-floor AHUs and a rear condenser yard with separate tank reservations. R01 adds separate fire-water, floor ventilation, VRF/condensate, wet-service, power and data route studies with independent inspection layers. D02 adds room-relative sensor, terminal, light and switch candidates plus equipment instrumentation, with separate design status and unconnected data.",
+  "stage": "08 · Room device concepts",
   "preview": "/projects/atrium-building/preview.svg",
   "model": {
     "kind": "atrium-building",
@@ -16,16 +16,21 @@
     "interior_revision": "A",
     "layout_source": "Supplied schematic office concept plans",
     "exterior_source": "Existing model dimensions; attached exterior image used for visual character only",
-    "services_status": "Connected conceptual air and washroom plumbing routes, sanitary extraction and rooftop placeholders; not sized or commissioned",
+    "services_status": "R01 main service candidates tied to equipment ports, with separate fire/domestic water, floor ventilation, sanitary exhaust, VRF/condensate and dry pathways; sizing, protection and engineering unresolved",
     "egress_status": "57 scheduled sign positions plus supplemental stair/non-exit identification and candidate outdoor routes; concept only, not installation-approved",
-    "egress_source": "Means of Egress.pdf, Rev E01, 28 Oct 2026, pp. 7\u20139",
+    "egress_source": "Means of Egress.pdf, Rev E01, 28 Oct 2026, pp. 7–9",
     "extinguisher_status": "27 paired FE/SG stations: 11 ground, 8 first, 8 second; PDF F01 placements, selection and ratings unverified",
     "washroom_status": "Six main WC suites and three separate accessible WCs; 21 toilets and 15 basins; accessibility and engineering review pending",
-    "bms_status": "84 planned washroom/fan asset locations; unavailable / model-only, no device bindings"
+    "bms_status": "84 planned washroom/fan asset locations; unavailable / model-only, no device bindings",
+    "equipment_status": "22 selectable equipment placeholders and 2 tank-space reservations from P01; simulated/model-only, unconnected, fire monitoring only",
+    "equipment_source": "AURA Equipment Placement Guide P01, 30 Oct 2026, pp.1–4; retained model geometry controls fit",
+    "services_source": "AURA Main Service Routes, R01, 31 Oct 2026, pp.1–4",
+    "device_status": "D02 room-relative candidates across three floors; source-linked instrumentation, lighting work zones and pending fire/atrium studies; hardware and telemetry unconnected",
+    "device_source": "AURA Device Positions All Floors, D02, 1 Nov 2026, pp.1–4; actual geometry governs placement"
   },
   "requirements": [
     {
-      "name": "Three furnished floors within the 40 \u00d7 24 m concept footprint",
+      "name": "Three furnished floors within the 40 × 24 m concept footprint",
       "status": "established"
     },
     {
@@ -34,14 +39,14 @@
     },
     {
       "name": "Plant rooms, wet/dry/HVAC risers and corridor service zones",
-      "status": "retained; conceptual air routes use existing east HVAC shaft and a separate west external chase"
+      "status": "Retained; R01 adds proposed FR/WR and distinct dry compartments. Candidate gallery routes avoid the atrium void and stairs."
     },
     {
       "name": "MEP networks, fire protection, sizing and original-building coordination",
-      "status": "Air and washroom plumbing concepts modeled; sizing, sprinklers and original-building coordination remain future work"
+      "status": "R01 main route studies modeled; sizing, sprinkler coverage, supports, barrier protection and site/structural coordination remain unresolved"
     },
     {
-      "name": "Opaque private/service fa\u00e7ades, solid roofs, ceiling layers, balconies and site",
+      "name": "Opaque private/service façades, solid roofs, ceiling layers, balconies and site",
       "status": "concept modeled; dimensions and engineering assumptions documented"
     },
     {
@@ -59,6 +64,18 @@
     {
       "name": "Washroom BMS asset inspection and honest unavailable states",
       "status": "84 planned locations; no live sensor, meter, fan or assistance-system binding"
+    },
+    {
+      "name": "P01 equipment envelopes, labelled ports, access clearances and rear service yard",
+      "status": "Concept placed and R01 routes connected to actual ports; capacities, handling, device selection and engineering remain unverified"
+    },
+    {
+      "name": "R01 main service routing and separate inspection layers",
+      "status": "Concept modeled across three floors; fire-alarm and atrium-smoke reservations unresolved"
+    },
+    {
+      "name": "D02 room device candidates, actual plant instrumentation and independent inspection layers",
+      "status": "Concept modeled across three floors; quantities, coverage, wiring and hardware unverified; new data unconnected/unavailable"
     }
   ],
   "iot": [],
@@ -77,11 +94,11 @@
     },
     {
       "name": "Fire detection and alarm",
-      "status": "planned"
+      "status": "Dedicated containment/source-space reservations only; architecture and device design pending"
     },
     {
       "name": "Pump room and sprinkler network",
-      "status": "planned"
+      "status": "Pump placement and dedicated fire main/riser reservations modeled; hydraulic and sprinkler design pending"
     },
     {
       "name": "IoT devices and BMS integration",

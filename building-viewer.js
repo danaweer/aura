@@ -1,5 +1,10 @@
 import * as THREE from "three";
 import { OrbitControls } from "./vendor/OrbitControls.js";
+import { ROUTE_SYSTEMS } from "./projects/atrium-building/main-service-plan.js";
+import {
+  DEVICE_TYPES,
+  DEVICE_CATEGORIES,
+} from "./projects/atrium-building/device-plan.js";
 import {
   createAtriumBuilding,
   FLOOR_HEIGHT,
@@ -33,6 +38,37 @@ export class BuildingViewer {
     this.washroomPoints = false;
     this.washroomDetail = false;
     this.selectedRoomId = "";
+    this.equipment = true;
+    this.equipmentClearances = false;
+    this.equipmentPorts = false;
+    this.equipmentConnections = false;
+    this.selectedEquipmentId = "";
+    this.equipmentEye = false;
+    this.serviceLayers = Object.fromEntries(
+      Object.keys(ROUTE_SYSTEMS).map((key) => [
+        key,
+        !["alarm", "smoke"].includes(key),
+      ]),
+    );
+    this.serviceShafts = true;
+    this.serviceAccess = false;
+    this.serviceEnvelopes = false;
+    this.selectedServiceId = "";
+    this.servicePlanMode = false;
+    this.serviceLabelButtons = [];
+    this.devices = true;
+    this.deviceLabels = true;
+    this.deviceRoutes = false;
+    this.deviceConnections = false;
+    this.devicePlanMode = false;
+    this.selectedDeviceId = "";
+    this.deviceCategories = Object.fromEntries(
+      Object.keys(DEVICE_CATEGORIES).map((c) => [
+        c,
+        !["zones", "pending"].includes(c),
+      ]),
+    );
+    this.deviceLabelButtons = [];
     this.extinguisherLabelLayer = document.getElementById("extinguisherLabels");
     this.extinguisherLabelButtons = [];
     this.egressLabelLayer = document.getElementById("egressLabels");
@@ -113,6 +149,125 @@ export class BuildingViewer {
     });
     environment.dispose();
     this.model = createAtriumBuilding();
+    const deviceSelect = document.getElementById("deviceSelect");
+    this.deviceLeaderSvg = document.createElementNS(
+      "http://www.w3.org/2000/svg",
+      "svg",
+    );
+    this.deviceLeaderSvg.classList.add("device-leaders");
+    this.deviceLeaderSvg.setAttribute("aria-hidden", "true");
+    this.labelLayer.append(this.deviceLeaderSvg);
+    const zoneSymbols = new Set();
+    for (const floor of [0, 1, 2]) {
+      const options = document.createElement("optgroup");
+      options.label = ["Ground floor", "First floor", "Second floor"][floor];
+      for (const r of this.model.devices.assets.filter(
+        (r) => r.floor === floor,
+      )) {
+        options.append(new Option(r.label, r.assetId));
+        if (r.supplemental) continue;
+        if (["L", "SW", "F"].includes(r.type)) continue;
+        const key = `${r.type}-${r.roomId}`;
+        if (["E", "P"].includes(r.type) && zoneSymbols.has(key)) continue;
+        zoneSymbols.add(key);
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "device-label";
+        button.dataset.deviceId = r.assetId;
+        button.dataset.deviceType = r.type;
+        button.textContent = r.type === "Z" ? "L" : r.type;
+        button.style.background = `#${DEVICE_TYPES[r.type].color.toString(16).padStart(6, "0")}`;
+        button.title = `${r.label} · ${r.designStatus} / unconnected`;
+        button.onclick = () => this.selectDevice(r.assetId, false);
+        const leader = document.createElementNS(
+          "http://www.w3.org/2000/svg",
+          "line",
+        );
+        this.deviceLeaderSvg.append(leader);
+        this.labelLayer.append(button);
+        this.deviceLabelButtons.push({ record: r, button, leader });
+      }
+      deviceSelect.append(options);
+    }
+    for (const floor of [0, 1, 2]) {
+      const prefix = floor ? `L${floor}` : "G";
+      const nodes = [
+        ["FR", -12.45, -4.45, ["fire"], `FR-01-${prefix}`],
+        ["WL", -11.55, -5.3, ["cold", "hot", "waste", "vent"], `WL-${prefix}`],
+        ["WR", 19.76, -5.56, ["cold", "hot", "waste", "vent"], `WR-${prefix}`],
+        ["DR", 10.5, -4.6, ["power", "data", "alarm"], `DR-POWER-${prefix}`],
+        ["DB", 13.35, -2.5, ["power"], `${prefix}-DB-TRAYS-R01`],
+        ["IDF", 10.25, -2.1, ["data"], `${prefix}-IDF-TRAYS-R01`],
+        [
+          "AHU",
+          floor ? 8.35 : -2,
+          floor ? -9.2 : -17.25,
+          ["supply", "return"],
+          floor ? `AHU-L${floor}-01` : "AHU-G-RES",
+        ],
+        ["EX", -18.95, -3.21, ["exhaust"], null],
+        ["EX", 18.95, -3.21, ["exhaust"], null],
+      ];
+      for (const [text, x, z, systems, id] of nodes) {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "service-label";
+        button.dataset.node = text;
+        button.textContent = text;
+        button.title = `${prefix} · ${id || "separate toilet extraction"}`;
+        button.onclick = () => {
+          if (!id) return;
+          if (id.startsWith("AHU-L")) this.selectEquipment(id, false);
+          else
+            this.selectService(
+              text === "DR" && !this.serviceLayers.power
+                ? `DR-${this.serviceLayers.data ? "DATA" : "FA"}-${prefix}`
+                : id,
+              false,
+            );
+        };
+        button.addEventListener("pointerdown", (event) => {
+          if (event.button === 1) {
+            event.preventDefault();
+            this.canvas.dispatchEvent(
+              new PointerEvent("pointerdown", {
+                pointerId: event.pointerId,
+                pointerType: event.pointerType,
+                isPrimary: event.isPrimary,
+                button: 1,
+                buttons: event.buttons,
+                clientX: event.clientX,
+                clientY: event.clientY,
+                cancelable: true,
+              }),
+            );
+          }
+        });
+        this.labelLayer.append(button);
+        this.serviceLabelButtons.push({ floor, x, z, systems, button });
+      }
+    }
+    const serviceSelect = document.getElementById("serviceSelect");
+    for (const [system, definition] of Object.entries(ROUTE_SYSTEMS)) {
+      const options = document.createElement("optgroup");
+      options.label = definition.label;
+      for (const record of this.model.mainServices.assets.filter(
+        (r) =>
+          r.system === system &&
+          !r.data.diagram &&
+          (r.reservation ||
+            [
+              "main",
+              "source",
+              "floor-source",
+              "plant-reservation",
+              "indoor-reservation",
+            ].includes(r.role) ||
+            r.id.startsWith("FC-")),
+      ))
+        options.append(new Option(record.data.label, record.id));
+      serviceSelect.append(options);
+    }
     this.scene.add(this.model.root);
     const ground = new THREE.Mesh(
       new THREE.PlaneGeometry(200, 200),
@@ -174,8 +329,19 @@ export class BuildingViewer {
         const part =
           hit.object.userData.instances?.[hit.instanceId] ||
           hit.object.userData;
-        if (part.kind === "egress-sign") this.selectSign(part.assetId, false);
+        if (this.devices && (part.kind === "room-device" || part.deviceId))
+          this.selectDevice(part.deviceId || part.assetId, false);
+        else if (["equipment", "equipment-port"].includes(part.kind))
+          this.selectEquipment(
+            part.equipmentId || part.assetId,
+            false,
+            part.portName,
+          );
+        else if (part.kind === "egress-sign")
+          this.selectSign(part.assetId, false);
         else if (part.kind === "washroom-point") this.inspectAsset(part);
+        else if (part.kind === "main-service")
+          this.selectService(part.assetId, false, part);
         else if (["fire-extinguisher", "extinguisher-sign"].includes(part.kind))
           this.selectExtinguisher(part.stationId || part.assetId, false);
         else if (
@@ -386,6 +552,11 @@ export class BuildingViewer {
     const washroomPoints = document.getElementById("washroomPointSelect");
     for (const [id, object] of this.washroomAssets)
       washroomPoints.append(new Option(object.userData.label, id));
+    const equipmentSelect = document.getElementById("equipmentSelect");
+    for (const record of this.model.equipment.assets)
+      equipmentSelect.append(
+        new Option(record.object.userData.label, record.definition.assetId),
+      );
     this.setView("overview");
   }
   resize() {
@@ -408,6 +579,12 @@ export class BuildingViewer {
     if (active) this.resize();
   }
   setView(view) {
+    if (view !== "plan") this.servicePlanMode = false;
+    if (view !== "plan") this.devicePlanMode = false;
+    this.camera.fov = 36;
+    this.camera.updateProjectionMatrix();
+    this.controls.minDistance = 12;
+    this.equipmentEye = false;
     this.washroomDetail = false;
     if (["overview", "front", "rear", "left", "right", "roof"].includes(view))
       this.floor = "all";
@@ -458,15 +635,86 @@ export class BuildingViewer {
   }
   setLayer(key, value) {
     if (key === "lowWalls") this.washroomDetail = false;
+    if (key === "equipmentConnections") this.systems = value;
     this[key] = value;
     this.applyLayers();
     this.render();
     this.onStateChange();
   }
   applyLayers() {
+    this.equipmentConnections = this.systems;
     // Keep floor plans readable without tall columns casting shadows across rooms.
     this.renderer.shadowMap.enabled = this.view !== "plan";
     applyBuildingVisibility(this.model, this);
+  }
+  setServiceLayer(system, value) {
+    if (!(system in this.serviceLayers)) return;
+    this.serviceLayers[system] = value;
+    if (value) this.systems = true;
+    this.applyLayers();
+    this.render();
+    this.onStateChange();
+  }
+  showServicePlan() {
+    this.devicePlanMode = false;
+    this.clearSelection();
+    this.systems = true;
+    this.servicePlanMode = true;
+    this.labels = false;
+    this.egressSigns = false;
+    this.egressPaths = false;
+    this.lowWalls = true;
+    this.washroomDetail = false;
+    this.setFloor(this.floor === "all" ? "1" : this.floor);
+    this.setView("plan");
+    this.servicePlanMode = true;
+    this.render();
+    this.onStateChange();
+  }
+  selectService(id, focus = true, part = null) {
+    this.devicePlanMode = false;
+    const r = this.model.mainServices.assets.find((r) => r.id === id);
+    if (!r) {
+      if (part) this.inspectAsset(part);
+      return;
+    }
+    this.clearSelection();
+    this.selectedServiceId = id;
+    if (["plant-reservation", "indoor-reservation"].includes(r.role))
+      this.equipment = true;
+    this.systems = true;
+    this.serviceLayers[r.system] = true;
+    if (r.reservation) this.serviceShafts = true;
+    if (focus) {
+      this.view = "offices";
+      this.servicePlanMode = false;
+      this.setFloor(r.floor == null ? "all" : String(r.floor));
+      this.labels = false;
+      this.lowWalls = true;
+      this.washroomDetail = false;
+      this.equipmentEye = false;
+      this.camera.fov = 36;
+      this.camera.updateProjectionMatrix();
+      this.controls.minDistance = 0.8;
+      const points = r.points || [
+        [r.bounds.x, r.bounds.y, r.bounds.z],
+        [r.bounds.x, r.bounds.y + r.bounds.h, r.bounds.z],
+      ];
+      const bounds = new THREE.Box3().setFromPoints(
+        points.map((p) => new THREE.Vector3(...p)),
+      );
+      bounds.getCenter(this.controls.target);
+      const size = bounds.getSize(new THREE.Vector3()),
+        extent = Math.max(4, size.x, size.z, size.y);
+      this.camera.position
+        .copy(this.controls.target)
+        .add(new THREE.Vector3(extent * 0.85, extent * 1.3, extent * 1.1));
+      this.controls.update();
+    }
+    this.onSelect(r.data);
+    this.applyLayers();
+    this.render();
+    this.onStateChange();
   }
   clearSelection() {
     if (!this.selection) return;
@@ -474,6 +722,96 @@ export class BuildingViewer {
     this.selection.geometry.dispose();
     this.selection.material.dispose();
     this.selection = null;
+  }
+  setDeviceCategory(category, value) {
+    this.deviceCategories[category] = value;
+    if (value) this.devices = true;
+    this.applyLayers();
+    this.render();
+    this.onStateChange();
+  }
+  showDevicePlan() {
+    this.clearSelection();
+    this.devices = true;
+    this.devicePlanMode = true;
+    this.servicePlanMode = false;
+    this.deviceCategories.zones = true;
+    this.systems = true;
+    this.labels = false;
+    this.lowWalls = true;
+    this.egressSigns = false;
+    this.egressPaths = false;
+    this.washroomDetail = false;
+    this.setFloor(this.floor === "all" ? "0" : this.floor);
+    this.setView("plan");
+    this.devicePlanMode = true;
+    this.servicePlanMode = false;
+    this.applyLayers();
+    this.render();
+    this.onStateChange();
+  }
+  selectDevice(id, focus = true) {
+    const r = this.model.devices.assets.find((r) => r.assetId === id);
+    if (!r) return;
+    this.clearSelection();
+    this.devices = true;
+    this.deviceCategories[r.category] = true;
+    this.selectedDeviceId = id;
+    this.selectedServiceId = "";
+    if (["S", "R", "E"].includes(r.type)) {
+      this.systems = true;
+      this.serviceLayers[
+        r.type === "S" ? "supply" : r.type === "R" ? "return" : "exhaust"
+      ] = true;
+    }
+    if (focus) {
+      this.devicePlanMode = false;
+      this.servicePlanMode = false;
+      this.view = "offices";
+      this.setFloor(String(r.floor));
+      this.view = "offices";
+      this.lowWalls = !["T", "Q", "SW"].includes(r.type);
+      this.labels = false;
+      this.washroomDetail = false;
+      this.systems = ["S", "R", "E", "P"].includes(r.type);
+      this.controls.minDistance = 0.5;
+      this.camera.fov = 48;
+      this.camera.updateProjectionMatrix();
+      this.controls.target.set(...r.position);
+      const normal = new THREE.Vector3(...r.normal),
+        offset = new THREE.Vector3(2, 4, 3);
+      if (["T", "Q", "SW"].includes(r.type))
+        offset.set(normal.x * 4, 2.4, normal.z * 4);
+      if (r.category === "pending" || r.category === "zones")
+        offset.set(12, 18, 16);
+      this.camera.position.copy(this.controls.target).add(offset);
+      if (r.type === "W") {
+        const room = this.model.rooms.find((room) => room.id === r.roomId),
+          east = room?.bounds.x1 > 0;
+        const dx = r.roomId === "G-I01" ? -1.2 : east ? 1.15 : -1.15,
+          dz = r.roomId === "G-I01" ? -0.3 : 0.65;
+        this.camera.position.set(
+          r.position[0] + dx,
+          r.position[1] + 0.55,
+          r.position[2] + dz,
+        );
+        if (room) {
+          this.camera.position.x = Math.max(
+            room.bounds.x1 + 0.2,
+            Math.min(room.bounds.x2 - 0.2, this.camera.position.x),
+          );
+          this.camera.position.z = Math.max(
+            room.bounds.z1 + 0.2,
+            Math.min(room.bounds.z2 - 0.2, this.camera.position.z),
+          );
+        }
+      }
+      this.controls.update();
+    }
+    this.onSelect(r.data);
+    this.applyLayers();
+    this.render();
+    this.onStateChange();
   }
   inspectAsset(part) {
     this.clearSelection();
@@ -484,9 +822,19 @@ export class BuildingViewer {
     this.onStateChange();
   }
   selectRoom(id, focus = true) {
+    this.devicePlanMode = false;
+    this.selectedDeviceId = "";
+    this.servicePlanMode = false;
+    this.selectedServiceId = "";
     const room = this.model.rooms.find((item) => item.id === id);
     if (!room) return;
     this.selectedRoomId = room.id;
+    if (focus) {
+      this.controls.minDistance = 12;
+      this.camera.fov = 36;
+      this.camera.updateProjectionMatrix();
+    }
+    this.equipmentEye = false;
     this.washroomDetail = false;
     if (String(room.floor) !== this.floor) this.setFloor(String(room.floor));
     const b = room.bounds,
@@ -550,6 +898,63 @@ export class BuildingViewer {
     this.render();
     this.onStateChange();
   }
+  selectEquipment(id, focus = true, portName = null, eye = false) {
+    this.devicePlanMode = false;
+    this.selectedDeviceId = "";
+    this.selectedServiceId = "";
+    const record = this.model.equipment.assets.find(
+      (r) => r.definition.assetId === id,
+    );
+    if (!record) return;
+    this.clearSelection();
+    this.equipment = true;
+    this.selectedEquipmentId = id;
+    if (focus) {
+      this.systems = false;
+      this.view = "offices";
+      this.setFloor(String(record.definition.floor));
+      this.equipmentEye = eye;
+      this.controls.minDistance = 0.6;
+      this.camera.fov = eye ? 80 : 36;
+      this.camera.updateProjectionMatrix();
+      this.lowWalls = !eye;
+      this.labels = false;
+      this.services = false;
+      this.equipmentConnections = false;
+      const d = record.definition,
+        h = d.size?.[2] ?? 2.4;
+      const position = record.object.getWorldPosition(new THREE.Vector3());
+      this.controls.target.copy(position).y += Math.min(h * 0.55, 1.2);
+      const normal = d.serviceFace || [0, 1];
+      if (eye) {
+        const half = d.type === "ahu" ? d.size[0] / 2 : (d.size?.[1] || 3) / 2;
+        const access = Math.min((d.clearance || 1.2) - 0.15, 1.45);
+        this.camera.position.set(
+          position.x + normal[0] * (half + access),
+          position.y + 1.65,
+          position.z + normal[1] * (half + access),
+        );
+      } else
+        this.camera.position
+          .copy(this.controls.target)
+          .add(
+            new THREE.Vector3(
+              normal[0] * 5 + normal[1] * 3,
+              6,
+              normal[1] * 5 - normal[0] * 3,
+            ),
+          );
+      this.controls.update();
+    }
+    this.onSelect({
+      ...record.object.userData,
+      portName,
+      ports: record.portRecords.map((p) => p.name),
+    });
+    this.applyLayers();
+    this.render();
+    this.onStateChange();
+  }
   selectWashroomPoint(id) {
     const object = this.washroomAssets.get(id);
     if (!object) return;
@@ -570,6 +975,7 @@ export class BuildingViewer {
     this.onStateChange();
   }
   selectExtinguisher(id, focus = true) {
+    this.servicePlanMode = false;
     const station = this.model.extinguishers.stations.find(
       (s) => s.assetId === id,
     );
@@ -594,6 +1000,8 @@ export class BuildingViewer {
     this.onStateChange();
   }
   showExtinguisherPlan() {
+    this.devicePlanMode = false;
+    this.servicePlanMode = false;
     this.extinguishers = true;
     this.egressSigns = false;
     this.egressPaths = false;
@@ -602,6 +1010,7 @@ export class BuildingViewer {
     this.setView("plan");
   }
   selectSign(id, focus = true) {
+    this.servicePlanMode = false;
     const sign = this.model.egress.allSigns.find((s) => s.assetId === id);
     if (!sign) return;
     this.clearSelection();
@@ -624,6 +1033,8 @@ export class BuildingViewer {
     this.onStateChange();
   }
   showExitPlan() {
+    this.devicePlanMode = false;
+    this.servicePlanMode = false;
     this.egressSigns = true;
     this.egressPaths = true;
     this.labels = false;
@@ -648,7 +1059,7 @@ export class BuildingViewer {
   }
   zoom(factor) {
     const offset = this.camera.position.clone().sub(this.controls.target);
-    offset.multiplyScalar(factor).clampLength(12, 120);
+    offset.multiplyScalar(factor).clampLength(this.controls.minDistance, 120);
     this.camera.position.copy(this.controls.target).add(offset);
     this.controls.update();
     this.render();
@@ -661,6 +1072,87 @@ export class BuildingViewer {
     this.renderer.render(this.scene, this.camera);
     const width = this.canvas.clientWidth,
       height = this.canvas.clientHeight;
+    const deviceOccupied = [];
+    this.deviceLeaderSvg.setAttribute("viewBox", `0 0 ${width} ${height}`);
+    for (const { record: r, button, leader } of this.deviceLabelButtons) {
+      const p =
+        r.type === "Z"
+          ? [r.bounds.x1 + 0.15, r.bounds.y, r.bounds.z1 + 0.15]
+          : r.position;
+      const point = new THREE.Vector3(...p).project(this.camera);
+      button.hidden = !(
+        this.devicePlanMode &&
+        this.deviceLabels &&
+        this.devices &&
+        this.view === "plan" &&
+        this.deviceCategories[r.category] &&
+        this.floor === String(r.floor) &&
+        Math.abs(point.x) < 0.98 &&
+        Math.abs(point.y) < 0.95 &&
+        point.z > -1 &&
+        point.z < 1
+      );
+      const x = ((point.x + 1) / 2) * width,
+        y = ((-point.y + 1) / 2) * height;
+      let dx = 0,
+        dy = 0;
+      if (!button.hidden) {
+        const offsets = [
+          [0, 0],
+          [10, 0],
+          [-10, 0],
+          [0, -10],
+          [0, 10],
+          [14, -12],
+          [-14, -12],
+          [14, 12],
+          [-14, 12],
+          [22, 0],
+          [-22, 0],
+          [0, -22],
+          [0, 22],
+          [24, -20],
+          [-24, -20],
+          [24, 20],
+          [-24, 20],
+        ];
+        const free = offsets.find(
+          ([a, b]) =>
+            !deviceOccupied.some(
+              (p) => Math.abs(p.x - x - a) < 20 && Math.abs(p.y - y - b) < 18,
+            ),
+        );
+        if (free) [dx, dy] = free;
+        deviceOccupied.push({ x: x + dx, y: y + dy });
+      }
+      button.style.left = `${x + dx}px`;
+      button.style.top = `${y + dy}px`;
+      leader.style.display = !button.hidden && (dx || dy) ? "" : "none";
+      leader.setAttribute("x1", x);
+      leader.setAttribute("y1", y);
+      leader.setAttribute("x2", x + dx);
+      leader.setAttribute("y2", y + dy);
+    }
+    for (const { floor, x, z, systems, button } of this.serviceLabelButtons) {
+      const point = new THREE.Vector3(
+        x,
+        floor * FLOOR_HEIGHT + 3.95,
+        z,
+      ).project(this.camera);
+      button.hidden = !(
+        this.servicePlanMode &&
+        this.view === "plan" &&
+        this.systems &&
+        this.floor === String(floor) &&
+        systems.some((s) => this.serviceLayers[s]) &&
+        Math.abs(point.x) < 0.98 &&
+        Math.abs(point.y) < 0.95 &&
+        point.z > -1 &&
+        point.z < 1
+      );
+      button.style.left = `${((point.x + 1) / 2) * width}px`;
+      button.style.top = `${((-point.y + 1) / 2) * height}px`;
+    }
     for (const { room, button } of this.labelButtons) {
       const b = room.bounds,
         point = new THREE.Vector3(
@@ -730,6 +1222,8 @@ export class BuildingViewer {
       ).project(this.camera);
       button.hidden = !(
         this.extinguishers &&
+        !this.servicePlanMode &&
+        !this.devicePlanMode &&
         this.view === "plan" &&
         String(station.floor) === this.floor &&
         Math.abs(point.x) < 0.98 &&
@@ -762,6 +1256,27 @@ export class BuildingViewer {
     this.canvas.dataset.washroomClearances = String(this.washroomClearances);
     this.canvas.dataset.washroomDoors = String(this.washroomDoors);
     this.canvas.dataset.washroomDetail = String(this.washroomDetail);
+    this.canvas.dataset.equipment = String(this.equipment);
+    this.canvas.dataset.serviceLayers = JSON.stringify(this.serviceLayers);
+    this.canvas.dataset.devices = String(this.devices);
+    this.canvas.dataset.deviceSelection = this.selectedDeviceId;
+    this.canvas.dataset.devicePlan = String(this.devicePlanMode);
+    this.canvas.dataset.deviceCategories = JSON.stringify(
+      this.deviceCategories,
+    );
+    this.canvas.dataset.deviceConnections = String(this.deviceConnections);
+    this.canvas.dataset.deviceRoutes = String(this.deviceRoutes);
+    this.canvas.dataset.serviceSelection = this.selectedServiceId;
+    this.canvas.dataset.serviceShafts = String(this.serviceShafts);
+    this.canvas.dataset.serviceAccess = String(this.serviceAccess);
+    this.canvas.dataset.serviceEnvelopes = String(this.serviceEnvelopes);
+    this.canvas.dataset.equipmentSelection = this.selectedEquipmentId;
+    this.canvas.dataset.equipmentEye = String(this.equipmentEye);
+    this.canvas.dataset.equipmentClearances = String(this.equipmentClearances);
+    this.canvas.dataset.equipmentPorts = String(this.equipmentPorts);
+    this.canvas.dataset.equipmentConnections = String(
+      this.equipmentConnections,
+    );
     this.canvas.dataset.roomSelection = this.selection?.visible
       ? this.selection.userData.roomId
       : "";

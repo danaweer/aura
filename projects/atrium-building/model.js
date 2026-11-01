@@ -1,5 +1,8 @@
 import { createEgress } from "./egress.js";
 import { createExtinguishers } from "./extinguishers.js";
+import { createEquipment } from "./equipment.js";
+import { createMainServices } from "./main-services.js";
+import { createRoomDevices } from "./devices.js";
 import {
   WASHROOM_PENETRATIONS,
   WASHROOM_ROOF_PENETRATIONS,
@@ -670,7 +673,27 @@ export function createAtriumBuilding() {
     }
   const egress = createEgress({ root, floors, stairCores });
   const extinguishers = createExtinguishers({ floors });
+  const equipment = createEquipment({ root, floors, services });
+  const mainServices = createMainServices({
+    root,
+    floors,
+    roof,
+    equipment,
+    services,
+  });
+  const devices = createRoomDevices({
+    root,
+    floors,
+    roof,
+    interiors,
+    services,
+    equipment,
+    mainServices,
+  });
   return {
+    devices,
+    mainServices,
+    equipment,
     egress,
     extinguishers,
     root,

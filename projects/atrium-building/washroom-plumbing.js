@@ -13,6 +13,7 @@ export function createWashroomPlumbing({ floors, roof, distribution }) {
   const roomFloors = new Map(ALL_ROOMS.map((room) => [room.id, room.floor]));
   const roofY = ENVELOPE.floorHeight * FLOORS.length;
   const ventRoof = group(roof, "Washroom soil vents", {
+    system: "vent",
     kind: "plumbing",
     layer: "systems",
   });
@@ -100,10 +101,7 @@ export function createWashroomPlumbing({ floors, roof, distribution }) {
       0.055,
       room.id,
     );
-    for (const [system, offset] of [
-      ["cold", 0.08],
-      ["tempered", -0.08],
-    ])
+    for (const [system, offset] of [["cold", 0.08]])
       pipe(
         part,
         `${room.id}-${system}-RISER`,
@@ -115,14 +113,54 @@ export function createWashroomPlumbing({ floors, roof, distribution }) {
         0.012,
         room.id,
       );
-    const join = p.suite ? at(0.24, 5.16, 0.18) : [sx, y + 0.18, sz];
-    const start = p.suite ? at(0.24, 1.66, 0.18) : at(0.24, 2.45, 0.18);
+    // R01: local hot-water provision, not a hot-water source at the booster.
+    pipe(
+      part,
+      `${room.id}-tempered-LOCAL`,
+      "tempered",
+      [
+        [sx, y + 2.98, sz - 0.2],
+        [sx, y + 3.58, sz - 0.2],
+        [sx, y + 3.58, sz - 0.08],
+      ],
+      0.012,
+      room.id,
+    );
+    pipe(
+      part,
+      `${room.id}-HEATER-COLD`,
+      "cold",
+      [
+        [sx, y + 2.98, sz + 0.08],
+        [sx + (p.east ? -0.1 : 0.1), y + 2.98, sz + 0.08],
+        [sx + (p.east ? -0.1 : 0.1), y + 2.98, sz - 0.2],
+        [sx, y + 2.98, sz - 0.2],
+      ],
+      0.012,
+      room.id,
+    );
+    const heater = group(part, `${room.id} local hot-water reservation`, {
+      system: "tempered",
+      floor: room.floor,
+    });
+    geo.box(heater, sx, y + 2.8, sz - 0.2, 0.16, 0.36, 0.15, m.tempered, {
+      assetId: `WH-${room.id}`,
+      kind: "plumbing",
+      system: "tempered",
+      floor: room.floor,
+      roomId: room.id,
+      label: `${room.id} local hot/tempered-water provision · conceptual`,
+      detail:
+        "Point-of-use heater/mixing reservation in service lining. Duty, temperature, protection and access unverified; no central hot-water plant or operating state asserted.",
+    });
+    const join = p.suite ? at(0.24, 5.16, 0.1) : [sx, y + 0.1, sz];
+    const start = p.suite ? at(0.24, 1.66, 0.24) : at(0.24, 2.45, 0.24);
     const header = p.suite
       ? [start, join]
       : [
           start,
-          at(0.24, 3.03, 0.18),
-          [sx, y + 0.18, p.point(0.24, 3.03)[2]],
+          at(0.24, 3.03, 0.17),
+          [sx, y + 0.12, p.point(0.24, 3.03)[2]],
           join,
         ];
     pipe(part, `${room.id}-SOIL-HEADER`, "waste", header, 0.05, room.id);
@@ -134,7 +172,11 @@ export function createWashroomPlumbing({ floors, roof, distribution }) {
         [
           at(0.45, c.wc[1], 0.3),
           at(0.24, c.wc[1], 0.3),
-          at(0.24, c.wc[1], 0.18),
+          at(
+            0.24,
+            c.wc[1],
+            p.suite ? 0.24 - (0.14 * (c.wc[1] - 1.66)) / 3.5 : 0.24,
+          ),
         ],
         0.045,
         room.id,
@@ -190,9 +232,9 @@ export function createWashroomPlumbing({ floors, roof, distribution }) {
         "waste",
         [
           trap.at(-1),
-          at(3.9, back, 0.12),
-          [sx, y + 0.12, p.point(3.9, back)[2]],
-          [sx, y + 0.12, sz],
+          at(3.9, back, 0.09),
+          [sx, y + 0.075, p.point(3.9, back)[2]],
+          [sx, y + 0.06, sz],
         ],
         0.025,
         room.id,
@@ -223,16 +265,22 @@ export function createWashroomPlumbing({ floors, roof, distribution }) {
           [-13, y + 0.45, -5.7],
           [-13, y + 0.6, -5.7],
           [-13, y + 0.15, -5.7],
-          [sx, y + 0.15, -5.7],
-          [sx, y + 0.15, sz],
+          [sx, y + 0.12, -5.7],
+          [sx, y + 0.11, sz],
         ],
         0.025,
         janitor,
       );
     }
-    // Visible cleanout / isolation reservations behind removable lining panels.
-    geo.box(part, sx, y + 0.4, sz + 0.08, 0.11, 0.16, 0.035, m.metal, {
+    // Accessories share the waste layer so hidden systems cannot leave floating caps.
+    const wasteParts = group(
+      part,
+      `${room.id} cleanout and drainage interface`,
+      { system: "waste", floor: room.floor },
+    );
+    geo.box(wasteParts, sx, y + 0.4, sz + 0.08, 0.11, 0.16, 0.035, m.metal, {
       assetId: `${room.id}-CLEANOUT`,
+      system: "waste",
       kind: "plumbing",
       roomId: room.id,
       label: "Accessible soil cleanout reservation",
@@ -259,50 +307,28 @@ export function createWashroomPlumbing({ floors, roof, distribution }) {
       });
     }
     if (room.floor === 0) {
-      const source = [-7.25, -0.5, -9.8],
-        cold = [sx, 0, sz + 0.08];
-      pipe(
-        part,
-        `${room.id}-COLD-SOURCE`,
-        "cold",
-        [
-          source,
-          [-7.25, -0.5, -13.8],
-          [sx, -0.5, -13.8],
-          [sx, -0.5, cold[2]],
-          cold,
-        ],
-        0.015,
-        room.id,
-      );
-      pipe(
-        part,
-        `${room.id}-TEMPERED-SOURCE`,
-        "tempered",
-        [
-          [-7.1, -0.6, -9.8],
-          [-7.1, -0.6, -13.95],
-          [sx, -0.6, -13.95],
-          [sx, -0.6, sz - 0.08],
-          [sx, 0, sz - 0.08],
-        ],
-        0.015,
-        room.id,
-      );
-      const boundary = [p.east ? 21 : -21, -0.65, -14.5];
+      // Cold source connections are now anchored to the actual booster in R01.
+      const boundary = [p.east ? 21 : -21, -0.72, -14.5];
       pipe(
         part,
         `${room.id}-DRAINAGE-BOUNDARY`,
         "waste",
-        [[sx, 0, sz], [sx, -0.65, sz], [sx, -0.65, -14.5], boundary],
+        [[sx, 0, sz], [sx, -0.4, sz], [sx, -0.65, -14.5], boundary],
         0.055,
         room.id,
       );
-      const connection = geo.cylinder(part, ...boundary, 0.13, 0.12, m.metal, {
-        kind: "plumbing",
-        label:
-          "Candidate external drainage connection · site/sewer levels unverified",
-      });
+      const connection = geo.cylinder(
+        wasteParts,
+        ...boundary,
+        0.13,
+        0.12,
+        m.metal,
+        {
+          kind: "plumbing",
+          label:
+            "Candidate external drainage connection · site/sewer levels unverified",
+        },
+      );
       stacks.push({ roomId: room.id, x: sx, z: sz, boundary, connection });
     }
   }

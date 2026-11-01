@@ -60,12 +60,14 @@ test("building has exactly three occupiable floor groups and a separate roof", (
   }
 });
 
-test("new building has no assigned IoT, and future systems remain planned", () => {
+test("building has no assigned IoT and R01 reservations do not claim completed fire/alarm engineering", () => {
   assert.equal(building.model.floors, 3);
   assert.equal(building.model.dimensions_verified, false);
   assert.deepEqual(building.iot, []);
   assert.ok(
-    building.phases.slice(3).every((phase) => phase.status === "planned"),
+    building.phases
+      .slice(3)
+      .every((phase) => /planned|pending/.test(phase.status)),
   );
   assert.match(building.phases[2].status, /concept modeled/);
   assert.equal(room.iot[0].scope, "meeting-room");

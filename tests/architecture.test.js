@@ -234,7 +234,7 @@ test("equipment, exhaust separation and connections keep rooftop maintenance ais
     assert.ok(zone.exhaustOutlet[1] > zone.intake[1]);
     const aisle = zone.aisle;
     // No body of equipment or shin-height connection cuts across the maintenance aisle.
-    for (const object of [zone.cooling, zone.ahu])
+    for (const object of [zone.cooling, zone.ahu].filter((o) => o.floor !== 0))
       assert.ok(object.x + 1.4 < aisle.x1 || object.x - 1.4 > aisle.x2);
     for (const route of model.services.routes.filter((r) =>
       r.id.startsWith(`${zone.wing}-COOLING-COIL`),
@@ -274,7 +274,13 @@ test("air routes avoid the existing structural columns and leave roof walkways u
       }
     }
   });
-  for (const route of model.services.routes)
+  for (const route of [
+    ...model.services.routes.filter((r) => !r.superseded),
+    ...model.mainServices.routes.filter(
+      (r) =>
+        !r.pending && !r.example && ["supply", "return"].includes(r.system),
+    ),
+  ])
     for (let i = 1; i < route.points.length; i++) {
       const a = route.points[i - 1],
         b = route.points[i];

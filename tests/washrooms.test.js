@@ -170,10 +170,10 @@ test("every WC cubicle, separate accessible WC and janitor has extract; washroom
     24,
   );
 });
-test("local soil and water stacks connect across all floors and roof vents pass through real reserved openings", () => {
+test("local soil/cold stacks connect across floors, hot water is local and roof vents use real reserved openings", () => {
   const routes = model.services.plumbing.routes;
   for (const code of ["W01", "W04", "W02"])
-    for (const system of ["SOIL-STACK", "cold-RISER", "tempered-RISER"]) {
+    for (const system of ["SOIL-STACK", "cold-RISER"]) {
       const segments = ["G", "L1", "L2"].map((f) =>
         routes.find((r) => r.id === `${f}-${code}-${system}`),
       );
@@ -181,6 +181,16 @@ test("local soil and water stacks connect across all floors and roof vents pass 
       assert.deepEqual(segments[1].points.at(-1), segments[2].points[0]);
     }
   for (const p of WASHROOM_PLANS) {
+    const hot = routes.find((r) => r.id === `${p.room.id}-tempered-LOCAL`);
+    assert.ok(hot);
+    assert.ok(
+      hot.points.every(
+        (point) =>
+          point[1] > p.room.floor * 4.2 + 2.9 &&
+          point[1] < p.room.floor * 4.2 + 3.7,
+      ),
+    );
+    assert.ok(!routes.some((r) => r.id === `${p.room.id}-TEMPERED-SOURCE`));
     for (const c of p.cubicles)
       assert.ok(routes.find((r) => r.id === `${p.room.id}-${c.id}-SOIL`));
     for (let i = 0; i < p.basins.length; i++)

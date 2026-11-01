@@ -8,6 +8,10 @@ export const ENVELOPE = {
   floorHeight: 4.2,
 };
 export const ATRIUM_VOID = { x1: -3, x2: 3, z1: -6, z2: 6 };
+// Shared with equipment mounting so bases sit on the rendered finished surface.
+export const ROOM_FLOOR_FINISH = { centerY: 0.014, thickness: 0.018 };
+export const ROOM_FLOOR_TOP =
+  ROOM_FLOOR_FINISH.centerY + ROOM_FLOOR_FINISH.thickness / 2;
 export const CATEGORIES = {
   office: { name: "Offices", color: 0xd4e3ea },
   meeting: { name: "Meetings", color: 0xded6eb },
@@ -157,7 +161,7 @@ function common(prefix, index) {
       "idf",
       0,
       [door("E", -1.4)],
-      "12.6 m² concept allowance. IT and electrical equipment/separation will be coordinated later.",
+      "12.6 m² shared concept allowance with distinct P01 network-rack and floor-DB zones. Partitioning and IT/electrical separation require review.",
     ),
     room(
       prefix,
@@ -235,7 +239,7 @@ const ground = [
     "reserve",
     0,
     [door("N", -11.75, 1.5, true)],
-    "27 m² fire-pump reserve with dedicated exterior access. Kept empty; no office or general storage use.",
+    "27 m² fire-pump room with dedicated exterior access. P01 proposed main/jockey pumps and separate controllers; duties and clearances unverified. No storage use.",
   ),
   room(
     "G",
@@ -246,7 +250,7 @@ const ground = [
     "reserve",
     0,
     [door("N", -7.25, 1.5, true)],
-    "27 m² domestic water/mechanical reserve. Fire-water storage is separate; no equipment sized or installed.",
+    "27 m² domestic water/mechanical reserve. Fire-water storage is separate; P01 booster, pressure vessel and control-panel envelopes are proposed, not selected or commissioned.",
   ),
   room(
     "G",
@@ -257,7 +261,7 @@ const ground = [
     "reserve",
     0,
     [door("N", 7.25, 1.5, true)],
-    "27 m² dry electrical reserve with exterior access. Working clearances and switchgear are not designed yet.",
+    "27 m² dry electrical reserve with exterior access. P01 MDB placement is proposed; electrical ratings and working clearances are unverified.",
   ),
   room(
     "G",
@@ -268,7 +272,7 @@ const ground = [
     "server-reserve",
     0,
     [door("E", -8.4, 1.1)],
-    "27 m² dedicated server/UPS reserve. Equipment, cooling, and battery separation will be coordinated later.",
+    "27 m² dedicated server/UPS reserve. P01 rack, UPS and dedicated cooling envelopes are proposed; capacities and battery separation need design.",
   ),
   room(
     "G",
@@ -279,7 +283,7 @@ const ground = [
     "bms",
     2,
     [door("S", 6.4)],
-    "25.2 m² operator room. Desks and inactive display models only; no BMS connection is installed.",
+    "25.2 m² operator room. Retained operator desks/displays plus a P01 control/gateway cabinet. No BMS connection is installed.",
   ),
 ];
 const first = [
@@ -368,7 +372,7 @@ const first = [
     "reserve",
     0,
     [door("W", -8.7, 1.3)],
-    "27 m² AHU reserve with access from the rear atrium gallery. Equipment and replacement routes remain to be designed.",
+    "27 m² AHU room with the retained west door from the rear gallery. P01 indoor AHU, service aisle and replacement-route reservations; capacity and removal handling unverified.",
   ),
   room(
     "L1",
@@ -475,7 +479,7 @@ const second = [
     "reserve",
     0,
     [door("W", -8.7, 1.3)],
-    "27 m² AHU reserve, stacked above the first-floor AHU allowance. No plant loads are placed on the glazed roof.",
+    "27 m² AHU room, stacked above the first-floor AHU. P01 indoor AHU, service and replacement reservations; no plant loads on the atrium glazing.",
   ),
   room(
     "L2",
