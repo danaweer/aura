@@ -175,6 +175,30 @@
                     ><small id="roomCode">MR-01</small>
                   </div>
                   <div class="scene-toolbar">
+                    <div
+                      id="presentationControls"
+                      class="presentation-controls"
+                      role="group"
+                      aria-label="Building presentation"
+                      hidden
+                    >
+                      <button
+                        type="button"
+                        class="tool-toggle active"
+                        data-presentation="normal"
+                        aria-pressed="true"
+                      >
+                        Normal
+                      </button>
+                      <button
+                        type="button"
+                        class="tool-toggle"
+                        data-presentation="blueprint"
+                        aria-pressed="false"
+                      >
+                        Blueprint
+                      </button>
+                    </div>
                     <button
                       type="button"
                       id="isoBtn"
@@ -675,6 +699,18 @@
                       ><i class="gray-dot"></i> 3 MODEL ASSETS</span
                     ><span id="sceneSync">AWAITING DEVICE</span>
                   </div>
+                  <details id="blueprintLegend" class="blueprint-legend" open>
+                    <summary>Blueprint · system colours</summary>
+                    <div
+                      id="blueprintLegendItems"
+                      class="blueprint-legend-items"
+                    ></div>
+                    <p>
+                      P01 equipment · R01 routes · D02 devices. Proposed /
+                      pending items retain their status. Not connected —
+                      integration planned.
+                    </p>
+                  </details>
                   <div class="scene-help" id="sceneHelp">
                     This 3D room is an illustrative model. Only MXCHIP telemetry
                     and its demo alarm are connected to the physical device.

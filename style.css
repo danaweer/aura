@@ -2223,6 +2223,114 @@ body.viewer-expanded {
   box-shadow: 0 1px 3px #23364240;
   cursor: pointer;
 }
+
+.presentation-controls {
+  display: flex;
+  gap: 2px;
+  border: 1px solid #38576c;
+  border-radius: 5px;
+  padding: 2px;
+}
+.presentation-controls[hidden] {
+  display: none;
+}
+.blueprint-legend {
+  position: absolute;
+  right: 14px;
+  bottom: 48px;
+  z-index: 8;
+  width: 232px;
+  max-width: 42%;
+  padding: 8px 10px;
+  border: 1px solid #8cb9e055;
+  border-radius: 5px;
+  background: #071b38ed;
+  color: #e6f1ff;
+  font: 9px/1.4 var(--mono);
+}
+.blueprint-asset-label {
+  position: absolute;
+  transform: translate(-50%, -100%);
+  max-width: 245px;
+  padding: 5px 8px;
+  border: 1px solid #ffe49b;
+  border-radius: 4px;
+  background: #082347ed;
+  color: #fff2c8;
+  font: 10px/1.4 var(--mono);
+  text-align: center;
+  pointer-events: none;
+}
+.blueprint-legend summary {
+  cursor: pointer;
+  font-weight: 700;
+}
+.blueprint-legend p {
+  margin: 6px 0 0;
+  color: #adcae5;
+  font-size: 8px;
+}
+.blueprint-legend-items {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px 8px;
+  margin-top: 8px;
+}
+.blueprint-legend-items span {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.blueprint-legend-items i {
+  flex: 0 0 8px;
+  height: 8px;
+  border: 1px solid #ffffff55;
+  border-radius: 2px;
+}
+#viewerPanel:not([data-presentation="blueprint"]) .blueprint-legend {
+  display: none;
+}
+#viewerPanel[data-presentation="blueprint"] #scene {
+  background: #071b38;
+}
+#viewerPanel[data-presentation="blueprint"] .scene-key,
+#viewerPanel[data-presentation="blueprint"] .scene-caption,
+#viewerPanel[data-presentation="blueprint"] .scene-orientation,
+#viewerPanel[data-presentation="blueprint"] .scene-mini-coord,
+#viewerPanel[data-presentation="blueprint"] .viewer-caption,
+#viewerPanel[data-presentation="blueprint"] .scene-controls-hint,
+#viewerPanel[data-presentation="blueprint"] .plan-note {
+  color: #cfdfef;
+}
+#viewerPanel[data-presentation="blueprint"] .scene-help {
+  display: none;
+}
+#viewerPanel[data-presentation="blueprint"] .room-label {
+  background: #0b2d55ed;
+  color: #f4f9ff;
+  border-color: #a4c4df77;
+}
+#viewerPanel[data-presentation="blueprint"] .room-label small {
+  color: #a6d3f2;
+}
+#viewerPanel[data-presentation="blueprint"] .device-leaders line {
+  stroke: #c5e3ff;
+}
+#viewerPanel[data-presentation="blueprint"]
+  .device-label[data-device-type="Z"] {
+  color: #ffe5a6;
+}
+@media (max-width: 720px) {
+  .presentation-controls .tool-toggle {
+    padding: 5px 7px;
+    font-size: 9px;
+  }
+  .blueprint-legend {
+    max-width: 54%;
+    width: 215px;
+    bottom: 42px;
+  }
+}
 .device-leaders {
   position: absolute;
   inset: 0;

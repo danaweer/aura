@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import * as THREE from "three";
+import { BuildingViewer } from "../building-viewer.js";
 import { createAtriumBuilding } from "../projects/atrium-building/model.js";
 import {
   ALL_ROOMS,
@@ -38,6 +39,41 @@ const state = {
 };
 const data = (h) =>
   h.object.userData.instances?.[h.instanceId] || h.object.userData;
+
+test("selecting the high atrium study reveals its roof parent and preserves ordinary device floor isolation", () => {
+  const viewer = Object.assign(Object.create(BuildingViewer.prototype), {
+    ...state,
+    model,
+    floor: "1",
+    roof: false,
+    cutaway: true,
+    deviceCategories: { ...state.deviceCategories },
+    serviceLayers: {},
+    camera: new THREE.PerspectiveCamera(),
+    controls: { target: new THREE.Vector3(), update() {} },
+    renderer: { shadowMap: {} },
+    render() {},
+    onSelect() {},
+    onStateChange() {},
+  });
+  const study = d02.assets.find((a) => a.assetId === "F-ATRIUM-HIGH-D02");
+  viewer.selectDevice(study.assetId);
+  assert.equal(viewer.floor, "all");
+  assert.equal(viewer.view, "roof");
+  assert.equal(viewer.cutaway, false);
+  assert.ok(isVisible(study.object));
+  assert.deepEqual(viewer.controls.target.toArray(), study.position);
+
+  viewer.selectDevice("Q-L1-07-01");
+  assert.equal(viewer.floor, "1");
+  assert.equal(viewer.view, "offices");
+  assert.ok(!isVisible(model.roof));
+  assert.ok(
+    isVisible(d02.assets.find((a) => a.assetId === "Q-L1-07-01").object),
+  );
+  applyBuildingVisibility(model, state);
+});
+
 function parts(root) {
   const all = [];
   root.traverse((o) => {

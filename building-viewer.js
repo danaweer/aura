@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import { OrbitControls } from "./vendor/OrbitControls.js";
+import { BlueprintPresentation } from "./projects/atrium-building/blueprint.js";
 import { ROUTE_SYSTEMS } from "./projects/atrium-building/main-service-plan.js";
 import {
   DEVICE_TYPES,
@@ -61,6 +62,7 @@ export class BuildingViewer {
     this.deviceRoutes = false;
     this.deviceConnections = false;
     this.devicePlanMode = false;
+    this.presentation = "normal";
     this.selectedDeviceId = "";
     this.deviceCategories = Object.fromEntries(
       Object.keys(DEVICE_CATEGORIES).map((c) => [
@@ -73,7 +75,10 @@ export class BuildingViewer {
     this.extinguisherLabelButtons = [];
     this.egressLabelLayer = document.getElementById("egressLabels");
     this.egressLabelButtons = [];
-    this.onSelect = onSelect;
+    this.onSelect = (part) => {
+      this.blueprint?.select(part);
+      onSelect(part);
+    };
     this.onStateChange = onStateChange;
     this.labelLayer = document.getElementById("buildingLabels");
     this.labelButtons = [];
@@ -284,6 +289,14 @@ export class BuildingViewer {
     plinth.position.set(0, -0.32, 1);
     plinth.receiveShadow = true;
     this.scene.add(plinth);
+    this.blueprint = new BlueprintPresentation(this.scene, this.model.root, [
+      ground,
+      plinth,
+    ]);
+    this.blueprintAssetLabel = document.createElement("div");
+    this.blueprintAssetLabel.className = "blueprint-asset-label";
+    this.blueprintAssetLabel.hidden = true;
+    this.labelLayer.append(this.blueprintAssetLabel);
     this.raycaster = new THREE.Raycaster();
     let down = null;
     canvas.addEventListener("pointerdown", (event) => {
@@ -571,12 +584,23 @@ export class BuildingViewer {
   }
   setActive(active) {
     this.active = active;
+    this.canvas.closest("#viewerPanel").dataset.presentation = active
+      ? this.presentation
+      : "normal";
     this.labelLayer.hidden = !active;
     this.egressLabelLayer.hidden = !active;
     this.extinguisherLabelLayer.hidden = !active;
     if (!active) document.getElementById("egressEndpoint").hidden = true;
     this.controls.enabled = active;
     if (active) this.resize();
+  }
+  setPresentation(mode) {
+    if (!["normal", "blueprint"].includes(mode)) return;
+    this.presentation = mode;
+    this.blueprint.setEnabled(mode === "blueprint");
+    this.canvas.closest("#viewerPanel").dataset.presentation = mode;
+    this.render();
+    this.onStateChange();
   }
   setView(view) {
     if (view !== "plan") this.servicePlanMode = false;
@@ -767,9 +791,15 @@ export class BuildingViewer {
     if (focus) {
       this.devicePlanMode = false;
       this.servicePlanMode = false;
-      this.view = "offices";
-      this.setFloor(String(r.floor));
-      this.view = "offices";
+      if (r.roof) {
+        this.roof = true;
+        this.cutaway = false;
+        this.setView("roof");
+      } else {
+        this.view = "offices";
+        this.setFloor(String(r.floor));
+        this.view = "offices";
+      }
       this.lowWalls = !["T", "Q", "SW"].includes(r.type);
       this.labels = false;
       this.washroomDetail = false;
@@ -1069,9 +1099,28 @@ export class BuildingViewer {
     if (this.selection)
       this.selection.visible =
         this.floor === String(this.selection.userData.floor);
-    this.renderer.render(this.scene, this.camera);
+    this.blueprint.render(this.renderer, this.camera);
     const width = this.canvas.clientWidth,
       height = this.canvas.clientHeight;
+    const assetLabel = this.blueprintAssetLabel;
+    assetLabel.hidden = !(
+      this.blueprint.enabled && this.blueprint.highlight.visible
+    );
+    if (!assetLabel.hidden) {
+      const bounds = this.blueprint.highlight.box;
+      const point = bounds.getCenter(new THREE.Vector3());
+      point.y = bounds.max.y + 0.15;
+      point.project(this.camera);
+      assetLabel.hidden =
+        Math.abs(point.x) > 0.95 ||
+        Math.abs(point.y) > 0.93 ||
+        point.z < -1 ||
+        point.z > 1;
+      assetLabel.textContent =
+        this.blueprint.part.label || this.blueprint.part.assetId;
+      assetLabel.style.left = `${((point.x + 1) / 2) * width}px`;
+      assetLabel.style.top = `${((-point.y + 1) / 2) * height}px`;
+    }
     const deviceOccupied = [];
     this.deviceLeaderSvg.setAttribute("viewBox", `0 0 ${width} ${height}`);
     for (const { record: r, button, leader } of this.deviceLabelButtons) {
@@ -1283,6 +1332,13 @@ export class BuildingViewer {
     this.canvas.dataset.egressPaths = String(this.egressPaths);
     this.canvas.dataset.egressTrace = currentRoute?.roomId || "";
     this.canvas.dataset.ready = "true";
+    this.canvas.dataset.presentation = this.presentation;
+    this.canvas.dataset.camera = JSON.stringify({
+      position: this.camera.position.toArray(),
+      target: this.controls.target.toArray(),
+      zoom: this.camera.zoom,
+      fov: this.camera.fov,
+    });
     this.canvas.dataset.floor = String(this.floor);
     this.canvas.dataset.view = this.view;
     this.canvas.dataset.furniture = String(this.furniture);

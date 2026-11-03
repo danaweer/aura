@@ -117,6 +117,134 @@ try {
   await page.locator("#scene").screenshot({
     path: path.join(root, "test-results", "exterior-overview.png"),
   });
+  // Presentation changes must never run navigation/layer setters.
+  const blueprintErrors = [];
+  const captureBlueprintError = (msg) => {
+    if (msg.type() === "error") blueprintErrors.push(msg.text());
+  };
+  page.on("console", captureBlueprintError);
+  const normalButton = page.locator('button[data-presentation="normal"]');
+  const blueprintButton = page.locator('button[data-presentation="blueprint"]');
+  const spatialState = () =>
+    page.locator("#buildingCanvas").evaluate((c) => {
+      const keys = [
+        "camera",
+        "floor",
+        "view",
+        "roomSelection",
+        "deviceSelection",
+        "equipmentSelection",
+        "serviceLayers",
+        "deviceCategories",
+        "systems",
+        "furniture",
+        "roofVisible",
+        "ceilingsVisible",
+      ];
+      return Object.fromEntries(keys.map((key) => [key, c.dataset[key]]));
+    });
+  const initialPresentationState = await spatialState();
+  const normalPixels = await page
+    .locator("#buildingCanvas")
+    .evaluate((c) => c.toDataURL());
+  await blueprintButton.click();
+  await expect(page.locator("#buildingCanvas")).toHaveAttribute(
+    "data-presentation",
+    "blueprint",
+  );
+  assert.deepEqual(await spatialState(), initialPresentationState);
+  await expect(page.locator("#blueprintLegend")).toBeVisible();
+  await page.locator("#scene").screenshot({
+    path: path.join(root, "test-results", "blueprint-exterior.png"),
+  });
+  await normalButton.click();
+  assert.deepEqual(await spatialState(), initialPresentationState);
+  assert.equal(
+    await page.locator("#buildingCanvas").evaluate((c) => c.toDataURL()),
+    normalPixels,
+    "Normal framebuffer restores exactly",
+  );
+  for (let cycle = 0; cycle < 8; cycle++) {
+    await blueprintButton.click();
+    await normalButton.click();
+  }
+  assert.deepEqual(await spatialState(), initialPresentationState);
+  assert.equal(
+    await page.locator("#buildingCanvas").evaluate((c) => c.toDataURL()),
+    normalPixels,
+  );
+  await blueprintButton.click();
+  await page.locator("#floorSelect").selectOption("1");
+  await page.locator("#buildingViewSelect").selectOption("plan");
+  await page.locator("#scene").screenshot({
+    path: path.join(root, "test-results", "blueprint-floor-services.png"),
+  });
+  await page.locator("#serviceRouteOptions summary").click();
+  await page.locator('[data-service-layer="fire"]').uncheck();
+  const filteredState = await spatialState();
+  await normalButton.click();
+  await blueprintButton.click();
+  assert.deepEqual(await spatialState(), filteredState);
+  await page.locator('[data-service-layer="fire"]').check();
+  await page.locator("#serviceRouteOptions summary").click();
+  await page.locator("#equipmentOptions summary").click();
+  await page.locator("#equipmentSelect").selectOption("FP-01");
+  await expect(page.locator("#buildingPartInfo")).toContainText(
+    "Not connected — integration planned",
+  );
+  const selectedEquipment = await spatialState();
+  await normalButton.click();
+  await blueprintButton.click();
+  assert.deepEqual(await spatialState(), selectedEquipment);
+  await page.locator("#scene").screenshot({
+    path: path.join(root, "test-results", "blueprint-equipment.png"),
+  });
+  await page.locator("#equipmentOptions summary").click();
+  await page.locator("#deviceOptions summary").click();
+  await page.locator("#deviceSelect").selectOption("Q-L1-07-01");
+  const selectedDevice = await spatialState();
+  await normalButton.click();
+  await blueprintButton.click();
+  assert.deepEqual(await spatialState(), selectedDevice);
+  const deviceCanvas = await page.locator("#buildingCanvas").boundingBox();
+  await page.locator("#buildingCanvas").click({
+    position: { x: deviceCanvas.width / 2, y: deviceCanvas.height / 2 },
+  });
+  await expect(page.locator("#buildingCanvas")).toHaveAttribute(
+    "data-device-selection",
+    "Q-L1-07-01",
+  );
+  await expect(page.locator(".blueprint-asset-label")).toContainText(
+    "Q-L1-07-01",
+  );
+  await page.locator("#scene").screenshot({
+    path: path.join(root, "test-results", "blueprint-device.png"),
+  });
+  await page.locator("#fullscreenBtn").click();
+  await expect(blueprintButton).toBeVisible();
+  const fullscreenState = await spatialState();
+  await normalButton.click();
+  await blueprintButton.click();
+  assert.deepEqual(await spatialState(), fullscreenState);
+  await page.screenshot({
+    path: path.join(root, "test-results", "blueprint-fullscreen.png"),
+  });
+  await page.locator("#fullscreenBtn").click();
+  await normalButton.click();
+  await page.locator("#deviceOptions summary").click();
+  await page.locator("#buildingViewSelect").selectOption("overview");
+  await page.locator("#systemsToggle").check();
+  await page.locator("#roomLabelsToggle").check();
+  await page.locator("#lowWallsToggle").check();
+  assert.deepEqual(
+    blueprintErrors,
+    [],
+    "No WebGL/shader or runtime console errors",
+  );
+  page.off("console", captureBlueprintError);
+  console.log(
+    "PASS Blueprint appearance, exact Normal restoration, stable camera/layers/selection, service filters, fullscreen and repeated switching",
+  );
   for (const view of ["front", "rear", "left", "right", "roof"]) {
     await page.locator("#buildingViewSelect").selectOption(view);
     await expect(page.locator("#buildingCanvas")).toHaveAttribute(
@@ -456,7 +584,7 @@ try {
   for (const id of equipmentIds) {
     await page.locator("#equipmentSelect").selectOption(id);
     await expect(page.locator("#buildingPartInfo")).toContainText(
-      "SIMULATED · MODEL ONLY / NOT CONNECTED",
+      "MODEL ONLY · Not connected — integration planned",
     );
     await expect(page.locator("#buildingCanvas")).toHaveAttribute(
       "data-equipment-selection",

@@ -4,6 +4,8 @@ A furnished three-floor building using the retained revision A office plans. Ope
 
 The existing model is the dimensional source: 40 × 24 m footprint, two 15 m wings around a 10 m central zone, 2.4 m main corridors, and occupied floor datums 0, 4.2 and 8.4 m. Room bounds, IDs, furniture inventory and internal circulation remain in `layout.js` and `interiors.js`. Front is +Z and rear is −Z, not geographic north. The exterior reference determines visual character, not dimensions.
 
+The **Normal / Blueprint** buttons beside the viewer controls switch presentation without changing the camera, floor, selection or layer settings. Blueprint uses the same model and P01/R01/D02 objects, with crease outlines, restrained hatching and existing system colours. See [BLUEPRINT.md](BLUEPRINT.md) for implementation and verification notes.
+
 - Ground: reception, visitor lounge/workspace, 8- and 6-seat meeting rooms, 16-seat training room, HR, finance and BMS/security.
 - First: two eight-desk team spaces, team lead and project offices, four-desk focus room, 8- and 6-seat meetings, print/archive, flexible office and IT support.
 - Second: CEO suite with desk, lounge and discussion table; executive and assistant offices; 12-seat boardroom; strategy and executive meetings; director office, executive lounge, records and facilities office.

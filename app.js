@@ -8,6 +8,33 @@ import { ROUTE_SYSTEMS } from "./projects/atrium-building/main-service-plan.js";
 import { DEVICE_CATEGORIES } from "./projects/atrium-building/device-plan.js";
 
 const $ = (id) => document.getElementById(id);
+const blueprintNames = [
+  "Fire water",
+  "Supply air",
+  "Return / relief",
+  "WC extract",
+  "Refrigerant",
+  "Condensate",
+  "Cold water",
+  "Hot / tempered",
+  "Waste",
+  "Vent",
+  "Power",
+  "Data / BMS",
+  "FA pathway*",
+  "Smoke study*",
+];
+for (const [index, definition] of Object.values(ROUTE_SYSTEMS).entries()) {
+  const item = document.createElement("span"),
+    swatch = document.createElement("i");
+  swatch.style.backgroundColor = `#${definition.color.toString(16).padStart(6, "0")}`;
+  item.append(swatch, document.createTextNode(blueprintNames[index]));
+  $("blueprintLegendItems").append(item);
+}
+for (const button of document.querySelectorAll("button[data-presentation]"))
+  button.onclick = () =>
+    buildingViewer?.setPresentation(button.dataset.presentation);
+
 for (const [category, labelText] of Object.entries(DEVICE_CATEGORIES)) {
   const label = document.createElement("label"),
     input = document.createElement("input");
@@ -970,6 +997,7 @@ async function activateProject(project) {
   $("roomLayers").hidden = !roomProject;
   $("buildingFooter").hidden = roomProject;
   $("buildingOptions").hidden = roomProject;
+  $("presentationControls").hidden = roomProject;
   $("interiorOptions").hidden = roomProject;
   $("egressOptions").hidden = roomProject;
   canvas.hidden = !roomProject;
@@ -1073,27 +1101,27 @@ async function activateProject(project) {
               $("deviceSelect").value = part.assetId;
               const connection = part.connection;
               $("buildingPartInfo").textContent =
-                `${level} · PDF D02 p.${part.sourcePage} · ${part.designStatus.toUpperCase()} · UNCONNECTED / UNAVAILABLE. ${part.isSensor ? `Proposed measurements: ${(part.measurements || []).join(", ") || "interface signals only"}. ` : "Physical asset / study; not a sensor reading. "}${part.detail} ${connection ? `Connection: ${connection.target} · ${connection.status}. ` : ""}${part.signals?.length ? `Separate signals: ${part.signals.join("; ")}. ` : ""}${part.type === "Q" ? "Relative humidity is optional only if supported by future hardware. " : ""}${part.legacyAssetId ? `Retained asset/point ID: ${part.legacyAssetId}. ` : ""}No live value, command or operating proof is provided.`;
+                `${level} · PDF D02 p.${part.sourcePage} · ${part.designStatus.toUpperCase()} · UNCONNECTED / UNAVAILABLE · Not connected — integration planned. ${part.isSensor ? `Proposed measurements: ${(part.measurements || []).join(", ") || "interface signals only"}. ` : "Physical asset / study; not a sensor reading. "}${part.detail} ${connection ? `Connection: ${connection.target} · ${connection.status}. ` : ""}${part.signals?.length ? `Separate signals: ${part.signals.join("; ")}. ` : ""}${part.type === "Q" ? "Relative humidity is optional only if supported by future hardware. " : ""}${part.legacyAssetId ? `Retained asset/point ID: ${part.legacyAssetId}. ` : ""}No live value, command or operating proof is provided.`;
               updateBuildingControls();
               return;
             }
             if (part.kind === "equipment" || part.kind === "equipment-port") {
               $("equipmentSelect").value = part.equipmentId || part.assetId;
               $("buildingPartInfo").textContent =
-                `${level} · ${part.roomId === "YARD" ? "Rear service yard" : part.roomId} · SIMULATED · MODEL ONLY / NOT CONNECTED. ${part.detail} ${part.portName ? `Selected port: ${part.portName}. ` : ""}Ports: ${(part.ports || []).join(", ") || "space reservation only"}. Fire-system integration is monitoring-only; no start/stop or live operating state is available.`;
+                `${level} · ${part.roomId === "YARD" ? "Rear service yard" : part.roomId} · MODEL ONLY · Not connected — integration planned. ${part.detail} ${part.portName ? `Selected port: ${part.portName}. ` : ""}Ports: ${(part.ports || []).join(", ") || "space reservation only"}. Fire-system integration is monitoring-only; no start/stop or live operating state is available.`;
               updateBuildingControls();
               return;
             }
             if (part.kind === "main-service") {
               $("buildingPartInfo").textContent =
-                `${level} · PDF R01 p.${part.sourcePage} · ${ROUTE_SYSTEMS[part.system].label} · CONCEPTUAL / NOT CONNECTED. ${part.detail}`;
+                `${level} · PDF R01 p.${part.sourcePage} · ${ROUTE_SYSTEMS[part.system].label} · CONCEPTUAL / NOT CONNECTED · Not connected — integration planned. ${part.detail}`;
               updateBuildingControls();
               return;
             }
             if (part.kind === "washroom-point") {
               $("washroomPointSelect").value = part.assetId;
               $("buildingPartInfo").textContent =
-                `${level} · UNAVAILABLE · MODEL ONLY. ${part.detail} Command and running proof are separate planned points; no live reading or operating state is asserted.`;
+                `${level} · UNAVAILABLE · MODEL ONLY · Not connected — integration planned. ${part.detail} Command and running proof are separate planned points; no live reading or operating state is asserted.`;
               updateBuildingControls();
               return;
             }
@@ -1155,6 +1183,11 @@ async function activateProject(project) {
 function updateBuildingControls() {
   if (!buildingViewer) return;
   const state = buildingViewer;
+  for (const button of document.querySelectorAll("button[data-presentation]")) {
+    const active = button.dataset.presentation === state.presentation;
+    button.classList.toggle("active", active);
+    button.setAttribute("aria-pressed", String(active));
+  }
   $("deviceSelect").value = state.selectedDeviceId;
   for (const input of document.querySelectorAll("[data-device-category]"))
     input.checked = state.deviceCategories[input.dataset.deviceCategory];
