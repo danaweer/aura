@@ -1,9 +1,31 @@
 /* Project metadata and navigation. Models share a workspace, never device bindings. */
 const $ = (id) => document.getElementById(id);
+export const APPLICATION_PAGES = {
+  dashboard: "Dashboard",
+  maintenance: "Maintenance",
+  calendar: "Calendar",
+  notifications: "Notifications",
+  "iot-devices": "IoT Devices",
+  "users-access": "Users & Access",
+};
+export function applicationRoute(hash) {
+  const [name, query = ""] = hash.replace(/^#/, "").split("?");
+  if (!Object.hasOwn(APPLICATION_PAGES, name)) return null;
+  const params = new URLSearchParams(query);
+  return {
+    page: name,
+    params: Object.fromEntries(
+      ["project_id", "asset_id", "room_id", "section"]
+        .filter((key) => params.has(key))
+        .map((key) => [key, params.get(key)]),
+    ),
+  };
+}
 export class ProjectLibrary {
-  constructor(onOpen, onLibrary) {
+  constructor(onOpen, onLibrary, onPage = () => {}) {
     this.onOpen = onOpen;
     this.onLibrary = onLibrary;
+    this.onPage = onPage;
     this.projects = [];
     this.current = null;
     window.addEventListener("hashchange", () => this.route());
@@ -72,6 +94,8 @@ export class ProjectLibrary {
   route() {
     if (!this.projects.length) return;
     if (location.hash === "#projects") return this.show(false);
+    const application = applicationRoute(location.hash);
+    if (application) return this.onPage(application.page, application.params);
     let requested = null;
     if (location.hash.startsWith("#project/")) {
       try {
@@ -98,11 +122,21 @@ export class ProjectLibrary {
     try {
       localStorage.setItem("aura.activeProject", id);
     } catch {}
-    this.onOpen(project);
+    return this.onOpen(project);
   }
   show(route = true) {
     if (route) history.pushState(null, "", "#projects");
     this.onLibrary();
+  }
+  navigate(page, params = {}) {
+    if (!Object.hasOwn(APPLICATION_PAGES, page)) return;
+    const query = new URLSearchParams(
+      Object.entries(params).filter(
+        ([, value]) => value != null && value !== "",
+      ),
+    );
+    history.pushState(null, "", `#${page}${query.size ? `?${query}` : ""}`);
+    this.onPage(page, params);
   }
 }
 

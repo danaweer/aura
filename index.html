@@ -60,44 +60,212 @@
       </header>
 
       <div class="app-grid">
-        <aside class="navrail" aria-label="Twin modules">
+        <aside class="navrail" aria-label="Application navigation">
+          <button
+            id="navDashboard"
+            class="nav-item"
+            type="button"
+            aria-label="Dashboard"
+            title="Dashboard"
+            data-app-page="dashboard"
+          >
+            <svg
+              class="nav-icon"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.7"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <path
+                d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1Z"
+              /></svg
+            ><small>Dashboard</small>
+          </button>
           <button
             id="navProjects"
             class="nav-item"
             type="button"
-            title="Saved projects"
             aria-label="Projects"
+            title="Projects"
           >
-            ▦<small>PROJECTS</small>
+            <svg
+              class="nav-icon"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.7"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <rect x="3" y="3" width="7" height="7" rx="1" />
+              <rect x="14" y="3" width="7" height="7" rx="1" />
+              <rect x="3" y="14" width="7" height="7" rx="1" />
+              <rect x="14" y="14" width="7" height="7" rx="1" /></svg
+            ><small>Projects</small>
           </button>
           <button
             id="navTwin"
             class="nav-item active"
             type="button"
-            title="Project workspace"
-            aria-label="Project workspace"
+            aria-label="3D Viewer"
+            title="3D project workspace"
           >
-            ▧<small>TWIN</small>
+            <svg
+              class="nav-icon"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.7"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <path
+                d="m12 3 9 5v8l-9 5-9-5V8Z M3 8l9 5 9-5 M12 13v8 M7.5 5.5l9 5"
+              /></svg
+            ><small>3D Viewer</small>
           </button>
           <button
+            id="navMaintenance"
             class="nav-item"
             type="button"
+            aria-label="Maintenance"
+            title="Maintenance"
+            data-app-page="maintenance"
+          >
+            <svg
+              class="nav-icon"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.7"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <path
+                d="M14 6a5 5 0 0 1 6-2l-3 3 1 3 3-3a5 5 0 0 1-6 6l-7 7a3 3 0 0 1-4-4l7-7a5 5 0 0 1 3-6Z"
+              /></svg
+            ><small>Maintenance</small>
+          </button>
+          <button
+            id="navCalendar"
+            class="nav-item"
+            type="button"
+            aria-label="Calendar"
+            title="Calendar — planned"
+            data-app-page="calendar"
+          >
+            <svg
+              class="nav-icon"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.7"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <rect x="3" y="5" width="18" height="16" rx="2" />
+              <path d="M7 3v4 M17 3v4 M3 11h18 M7 15h2 M13 15h2" /></svg
+            ><small>Calendar</small>
+          </button>
+          <button
+            id="navNotifications"
+            class="nav-item"
+            type="button"
+            aria-label="Notifications"
+            title="Notifications — planned"
+            data-app-page="notifications"
+          >
+            <svg
+              class="nav-icon"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.7"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <path
+                d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9 M10 21h4"
+              /></svg
+            ><small>Notifications</small>
+          </button>
+          <button
             id="navSensors"
-            title="Inspect live sensor"
-            aria-label="Inspect live sensor"
-          >
-            ◉<small>DATA</small>
-          </button>
-          <button
             class="nav-item"
             type="button"
-            id="navAlarm"
-            title="Inspect alarm"
-            aria-label="Inspect alarm"
+            aria-label="IoT Devices"
+            title="IoT Devices"
+            data-app-page="iot-devices"
           >
-            ◇<small>ALARM</small>
+            <svg
+              class="nav-icon"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.7"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <rect x="6" y="6" width="12" height="12" rx="2" />
+              <path
+                d="M9 2v4 M15 2v4 M9 18v4 M15 18v4 M2 9h4 M2 15h4 M18 9h4 M18 15h4"
+              />
+              <rect x="10" y="10" width="4" height="4" rx="1" /></svg
+            ><small>IoT Devices</small>
           </button>
-          <div class="rail-bottom">A1</div>
+          <button
+            id="navUsers"
+            class="nav-item"
+            type="button"
+            aria-label="Users & Access"
+            title="Users & Access — planned"
+            data-app-page="users-access"
+          >
+            <svg
+              class="nav-icon"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.7"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <circle cx="9" cy="8" r="3" />
+              <path
+                d="M3 21v-3a6 6 0 0 1 12 0v3 M16 5a3 3 0 0 1 0 6 M21 21v-3a6 6 0 0 0-3-5"
+              /></svg
+            ><small>Users &amp; Access</small>
+          </button>
+          <button
+            id="navAlarm"
+            class="nav-item"
+            type="button"
+            aria-label="Inspect alarm"
+            title="Inspect meeting-room alarm"
+          >
+            <svg
+              class="nav-icon"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.7"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <path d="M12 3 2 21h20Z M12 9v5 M12 17v.1" /></svg
+            ><small>Alarm</small>
+          </button>
         </aside>
 
         <main class="main-content">
@@ -126,6 +294,386 @@
             </div>
           </section>
 
+          <section
+            id="dashboardPage"
+            class="application-page"
+            hidden
+            aria-label="Dashboard"
+          >
+            <header class="application-intro">
+              <p class="eyebrow">YOUR WORKSPACE</p>
+              <h2>Dashboard</h2>
+              <p>
+                Open a project or continue building operations from one place.
+              </p>
+            </header>
+            <div class="application-cards">
+              <a href="#projects" class="application-card"
+                ><span class="eyebrow">MODEL LIBRARY</span>
+                <h3>Projects</h3>
+                <p id="dashboardProjectCount">Saved projects</p></a
+              >
+              <a
+                href="#maintenance?project_id=atrium-building"
+                class="application-card"
+                ><span class="eyebrow">CORRECTIVE MAINTENANCE</span>
+                <h3>Reports and work orders</h3>
+                <p>
+                  Submit an observation or continue manager review in the AHU
+                  pilot.
+                </p></a
+              >
+              <a href="#iot-devices" class="application-card"
+                ><span class="eyebrow">PROJECT ASSIGNMENTS</span>
+                <h3>IoT Devices</h3>
+                <p>
+                  See the existing device assignments and open their project
+                  telemetry.
+                </p></a
+              >
+            </div>
+          </section>
+          <section
+            id="plannedPage"
+            class="application-page planned-screen"
+            hidden
+            aria-label="Planned application area"
+          >
+            <span class="planned-badge">Planned · Not implemented</span>
+            <h2 id="plannedPageTitle"></h2>
+            <p id="plannedPageDescription"></p>
+          </section>
+          <section
+            id="iotDevicesPage"
+            class="application-page"
+            hidden
+            aria-label="IoT Devices"
+          >
+            <header class="application-intro">
+              <p class="eyebrow">EXISTING PROJECT CONFIGURATION</p>
+              <h2>IoT Devices</h2>
+              <p>
+                Configured project assignments. Open the device's project to
+                inspect its current telemetry and connection state.
+              </p>
+            </header>
+            <div id="iotDeviceCards" class="application-cards"></div>
+          </section>
+          <section
+            id="maintenancePage"
+            class="application-page"
+            hidden
+            aria-label="Maintenance"
+          >
+            <header class="maintenance-header">
+              <div>
+                <p class="eyebrow">BUILDING OPERATIONS</p>
+                <h1>Maintenance Center</h1>
+                <p
+                  id="maintenanceContext"
+                  class="application-context"
+                  role="status"
+                ></p>
+              </div>
+              <button
+                id="maintenanceReportAction"
+                class="maintenance-primary"
+                type="button"
+              >
+                <span aria-hidden="true">＋</span> Report problem
+              </button>
+            </header>
+            <section
+              id="maintenanceOverview"
+              class="maintenance-overview"
+              aria-label="Maintenance overview"
+              data-state="loading"
+            >
+              <article class="maintenance-metric">
+                <span>Reports</span
+                ><strong id="maintenanceMetricReports">—</strong
+                ><small>Current report list</small>
+              </article>
+              <article class="maintenance-metric">
+                <span>Awaiting review</span
+                ><strong id="maintenanceMetricReview">—</strong
+                ><small>Submitted, not yet reviewed</small>
+              </article>
+              <article class="maintenance-metric">
+                <span>Open work orders</span
+                ><strong id="maintenanceMetricOrders">—</strong
+                ><small>AHU pilot · loaded jobs</small>
+              </article>
+              <article class="maintenance-metric">
+                <span>Linked reports</span
+                ><strong id="maintenanceMetricLinked">—</strong
+                ><small>With a work order</small>
+              </article>
+            </section>
+            <button
+              id="maintenanceUsePilot"
+              class="projects-button"
+              type="button"
+              hidden
+            >
+              Open building maintenance pilot
+            </button>
+            <section id="maintenancePanel" class="maintenance-panel">
+              <div class="maintenance-toolbar">
+                <div class="maintenance-role-control">
+                  <label for="maintenanceRole">Demo role</label
+                  ><select id="maintenanceRole">
+                    <option value="employee">Employee</option>
+                    <option value="manager">Manager</option>
+                  </select>
+                </div>
+                <p class="maintenance-caption">
+                  Local workflow preview · Demo role is not authentication.
+                </p>
+                <button
+                  id="maintenanceRefresh"
+                  class="maintenance-secondary"
+                  type="button"
+                >
+                  Refresh reports
+                </button>
+              </div>
+              <p id="maintenanceMessage" role="status" aria-live="polite"></p>
+              <div
+                class="maintenance-tabs"
+                role="group"
+                aria-label="Maintenance sections"
+              >
+                <button
+                  type="button"
+                  data-maintenance-tab="reports"
+                  aria-pressed="true"
+                >
+                  Reports
+                </button>
+                <button
+                  type="button"
+                  data-maintenance-tab="work-orders"
+                  aria-pressed="false"
+                >
+                  Work Orders
+                </button>
+                <button
+                  type="button"
+                  data-maintenance-tab="preventive"
+                  aria-pressed="false"
+                >
+                  Preventive · Planned
+                </button>
+                <button
+                  type="button"
+                  data-maintenance-tab="predictive"
+                  aria-pressed="false"
+                >
+                  Predictive · Planned
+                </button>
+                <button
+                  type="button"
+                  data-maintenance-tab="asset-history"
+                  aria-pressed="false"
+                >
+                  Asset history · Planned
+                </button>
+              </div>
+              <section
+                id="maintenanceReportsPanel"
+                aria-label="Maintenance reports"
+              >
+                <div class="maintenance-report-layout">
+                  <section class="maintenance-card">
+                    <header class="maintenance-card-heading">
+                      <div>
+                        <h3>Report a problem</h3>
+                        <p>Record an equipment or room issue.</p>
+                      </div>
+                    </header>
+                    <form id="problemReportForm">
+                      <div class="maintenance-field-row">
+                        <label
+                          >Your name<input
+                            name="reporter"
+                            required
+                            maxlength="200"
+                            autocomplete="name" /></label
+                        ><label
+                          >Observed time<input
+                            name="observed_at"
+                            type="datetime-local"
+                            required
+                        /></label>
+                      </div>
+                      <div class="maintenance-field-row">
+                        <label
+                          >Equipment<select name="asset_id">
+                            <option value="AHU-L1-01">AHU-L1-01</option>
+                            <option value="">Equipment unknown</option>
+                          </select></label
+                        ><label
+                          >Where did you notice it?<select
+                            name="room_id"
+                            required
+                          >
+                            <option value="">Select a room…</option>
+                          </select></label
+                        >
+                      </div>
+                      <button id="maintenanceUseSelection" type="button">
+                        Use selected room / AHU</button
+                      ><label
+                        >Symptom<input
+                          name="symptom"
+                          required
+                          maxlength="500"
+                          placeholder="For example, unusually noisy ventilation" /></label
+                      ><label
+                        >Impact<input
+                          name="impact"
+                          required
+                          maxlength="1000"
+                          placeholder="Who or what is affected?" /></label
+                      ><label
+                        >Description<textarea
+                          name="description"
+                          required
+                          maxlength="10000"
+                          rows="3"
+                        ></textarea></label
+                      ><label class="maintenance-check"
+                        ><input name="potential_hazard" type="checkbox" />
+                        Possible immediate hazard</label
+                      >
+                      <p
+                        id="maintenanceEmergency"
+                        class="maintenance-emergency"
+                        hidden
+                      ></p>
+                      <div class="maintenance-form-actions">
+                        <button class="maintenance-primary" type="submit">
+                          Submit problem report</button
+                        ><button
+                          id="maintenanceNewDraft"
+                          class="maintenance-tertiary"
+                          type="button"
+                        >
+                          Clear draft
+                        </button>
+                      </div>
+                    </form>
+                  </section>
+                  <section class="maintenance-card">
+                    <header class="maintenance-card-heading">
+                      <div>
+                        <h3>Submitted reports</h3>
+                        <p>Review recent observations and corrective work.</p>
+                      </div>
+                      <span
+                        id="maintenanceReportCount"
+                        class="maintenance-count"
+                        >—</span
+                      >
+                    </header>
+                    <div
+                      id="maintenanceRecentReports"
+                      class="maintenance-recent-reports"
+                    ></div>
+                    <label
+                      >Report<select id="maintenanceReportSelect">
+                        <option value="">No reports loaded</option>
+                      </select></label
+                    >
+                    <div
+                      id="maintenanceReportDetail"
+                      class="maintenance-report-detail"
+                    ></div>
+                    <form id="managerTriageForm" hidden>
+                      <h3>Manager review</h3>
+                      <label
+                        >Map equipment<select name="asset_id">
+                          <option value="">Equipment not yet identified</option>
+                          <option value="AHU-L1-01">AHU-L1-01</option>
+                        </select></label
+                      >
+                      <label
+                        >Priority<select name="priority" required>
+                          <option>Normal</option>
+                          <option>Low</option>
+                          <option>High</option>
+                          <option>Emergency</option>
+                        </select></label
+                      >
+                      <label
+                        >Review / priority reason<textarea
+                          name="reason"
+                          required
+                          maxlength="3000"
+                          rows="2"
+                        ></textarea>
+                      </label>
+                      <label
+                        >Work order action<select name="link_mode">
+                          <option value="review">Save review only</option>
+                          <option value="new">
+                            Create corrective work order
+                          </option>
+                          <option value="existing">
+                            Link existing related work order
+                          </option>
+                        </select></label
+                      >
+                      <label id="maintenanceExistingLabel" hidden
+                        >Existing AHU work order<select
+                          name="work_order_id"
+                        ></select
+                      ></label>
+                      <p class="maintenance-caption">
+                        Related reports can share one work order; each original
+                        report is retained.
+                      </p>
+                      <button type="submit">Save manager triage</button>
+                    </form>
+                  </section>
+                </div>
+              </section>
+              <section
+                id="maintenanceWorkOrdersPanel"
+                hidden
+                aria-label="Maintenance work orders"
+              >
+                <h3>Work Orders</h3>
+                <p class="maintenance-caption">
+                  Persisted corrective jobs from the existing AHU pilot. Full
+                  job execution and lifecycle actions are planned.
+                </p>
+                <label
+                  >Work order<select id="maintenanceWorkOrderSelect">
+                    <option value="">No work orders loaded</option>
+                  </select></label
+                >
+                <div
+                  id="maintenanceWorkOrderDetail"
+                  class="maintenance-report-detail"
+                ></div>
+              </section>
+              <section
+                id="maintenanceFuturePanel"
+                class="planned-screen"
+                hidden
+              >
+                <span class="planned-badge">Planned · Not implemented</span>
+                <h3 id="maintenanceFutureTitle"></h3>
+                <p>
+                  This maintenance area is reserved for a later stage. No
+                  automated plans, predictions or asset-history service is
+                  running.
+                </p>
+              </section>
+            </section>
+          </section>
           <section
             id="projectsView"
             class="projects-view"
@@ -797,6 +1345,18 @@
                     Select a room label, furniture item, or room from the list
                     to inspect its area, use, and service reservations.
                   </p>
+                </div>
+                <div class="maintenance-shortcut">
+                  <small id="maintenanceSelectionContext"
+                    >Reports and corrective work</small
+                  >
+                  <button
+                    id="openAssetMaintenance"
+                    class="projects-button"
+                    type="button"
+                  >
+                    Open maintenance
+                  </button>
                 </div>
                 <section class="project-iot">
                   <div class="detail-heading">

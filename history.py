@@ -4,6 +4,7 @@ import json
 import sqlite3
 import threading
 from pathlib import Path
+from maintenance import MaintenanceStore
 
 
 class HistoryStore:
@@ -32,6 +33,12 @@ class HistoryStore:
                 CREATE INDEX IF NOT EXISTS alarms_source ON alarms(source, row_id);
                 """
             )
+
+        try:
+            self.maintenance = MaintenanceStore(self.connection, self.lock)
+        except Exception:
+            self.connection.close()
+            raise
 
     def _append(self, table, source, item):
         # table is selected only by the two public methods below.

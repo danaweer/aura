@@ -44,13 +44,16 @@ button:disabled {
   min-height: 100vh;
 }
 .topbar {
+  position: sticky;
+  top: 0;
+  z-index: 40;
   height: 74px;
   border-bottom: 1px solid #1e3040;
   display: flex;
   justify-content: space-between;
   align-items: center;
   padding: 0 30px;
-  background: #091522e8;
+  background: #091522;
 }
 .identity {
   display: flex;
@@ -159,43 +162,68 @@ button:disabled {
 }
 .app-grid {
   display: grid;
-  grid-template-columns: 74px minmax(0, 1fr);
+  grid-template-columns: 208px minmax(0, 1fr);
+  min-height: calc(100dvh - 74px);
+  align-content: start;
 }
 .navrail {
   border-right: 1px solid #213246;
-  background: #0a1724;
+  background: #091522;
   display: flex;
-  align-items: center;
+  align-items: stretch;
   flex-direction: column;
-  gap: 9px;
-  padding: 26px 8px;
+  gap: 5px;
+  padding: 16px 12px;
+  position: sticky;
+  top: 74px;
+  align-self: start;
+  height: calc(100dvh - 74px);
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: #3b566b transparent;
 }
 .nav-item {
   display: flex;
-  flex-direction: column;
+  flex-shrink: 0;
   align-items: center;
-  gap: 5px;
+  gap: 12px;
   border: 1px solid transparent;
   background: transparent;
-  color: #718a9e;
-  padding: 11px 7px;
-  border-radius: 11px;
-  width: 58px;
-  font-size: 22px;
-  line-height: 1;
+  color: #a1b5c6;
+  padding: 11px 12px;
+  border-radius: 7px;
+  width: 100%;
+  min-height: 44px;
+  line-height: 1.35;
+}
+.nav-icon {
+  width: 20px;
+  height: 20px;
+  flex: 0 0 20px;
 }
 .nav-item small {
-  font-size: 8px;
-  letter-spacing: 0.8px;
-  font-weight: 750;
+  font-size: 16px;
+  letter-spacing: 0;
+  text-align: left;
+  font-weight: 550;
 }
 .nav-item.active {
-  background: #113e43;
-  color: var(--teal);
-  border-color: #286268;
+  background: #123b41;
+  color: #83e5d6;
+  border-color: #27565c;
 }
-.nav-item:hover {
-  color: var(--text);
+.nav-item:hover:not(:disabled) {
+  color: #edf7fc;
+  background: #142b3b;
+}
+.nav-item.active:hover {
+  background: #17454a;
+}
+.nav-item:focus-visible {
+  outline: 2px solid #63ddcc;
+  outline-offset: -2px;
 }
 .rail-bottom {
   font: 12px var(--mono);
@@ -207,7 +235,7 @@ button:disabled {
   padding: 29px 32px 25px;
   max-width: 1800px;
   width: 100%;
-  margin: auto;
+  margin: 0 auto;
   min-width: 0;
 }
 .page-heading {
@@ -1111,9 +1139,31 @@ dialog button {
   }
   .app-grid {
     grid-template-columns: 1fr;
+    min-height: calc(100dvh - 63px);
   }
   .navrail {
-    display: none;
+    display: flex;
+    flex-direction: row;
+    align-items: stretch;
+    gap: 4px;
+    padding: 7px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    height: auto;
+    top: 63px;
+    max-width: 100%;
+    min-width: 0;
+    z-index: 20;
+  }
+  .nav-item {
+    flex: 0 0 96px;
+    flex-direction: column;
+    padding: 8px 5px;
+    gap: 5px;
+  }
+  .nav-item small {
+    font-size: 13px;
+    text-align: center;
   }
   .main-content {
     padding: 20px 13px;
@@ -1333,9 +1383,6 @@ canvas:focus-visible {
 .projects-button:hover,
 .open-project:hover {
   background: #20505a;
-}
-.nav-item small {
-  font-size: 7px;
 }
 .projects-view {
   padding-top: 10px;
@@ -2230,6 +2277,654 @@ body.viewer-expanded {
   border: 1px solid #38576c;
   border-radius: 5px;
   padding: 2px;
+}
+
+.maintenance-panel {
+  padding: 18px 20px;
+  border-top: 1px solid #294255;
+  color: #c4d5e2;
+}
+.application-page {
+  min-width: 0;
+  padding: 24px;
+  border: 1px solid var(--border);
+  border-radius: 13px;
+  background: var(--panel);
+}
+.application-intro h2 {
+  margin: 8px 0;
+  font-size: 28px;
+}
+.application-intro > p:not(.eyebrow) {
+  color: var(--muted);
+  line-height: 1.6;
+}
+.application-context {
+  color: #b7d9e4;
+  font-size: 15px;
+  line-height: 1.7;
+  overflow-wrap: anywhere;
+}
+.application-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: 16px;
+  margin-top: 24px;
+}
+.application-card {
+  display: block;
+  padding: 22px;
+  border: 1px solid var(--border2);
+  border-radius: 9px;
+  background: #122736;
+  color: var(--text);
+  text-decoration: none;
+  min-width: 0;
+}
+.application-card h3 {
+  margin: 10px 0;
+  font-size: 20px;
+}
+.application-card p {
+  color: #a3bdce;
+  font-size: 15px;
+  line-height: 1.7;
+}
+a.application-card:hover {
+  border-color: var(--teal);
+}
+.planned-badge {
+  display: inline-block;
+  padding: 5px 9px;
+  border: 1px solid #816239;
+  border-radius: 5px;
+  color: #eac38a;
+  background: #372e21;
+  font-size: 14px;
+}
+.planned-screen p {
+  max-width: 660px;
+  color: var(--muted);
+  line-height: 1.7;
+}
+#maintenancePage .maintenance-panel {
+  padding: 0;
+  border: 0;
+}
+.maintenance-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  padding: 0;
+  border-bottom: 1px solid #24394a;
+  margin: 0 0 20px;
+}
+#maintenancePage .maintenance-tabs button {
+  border: 0;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+  background: transparent;
+  color: #99adbd;
+  padding: 12px 2px;
+  margin: 0;
+  min-height: 44px;
+  font-size: 16px;
+}
+#maintenancePage .maintenance-tabs button[aria-pressed="true"] {
+  color: #88e4d7;
+  border-bottom-color: #56cbbb;
+  background: transparent;
+}
+.maintenance-report-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 20px;
+  align-items: start;
+}
+.maintenance-report-layout > section {
+  min-width: 0;
+}
+.maintenance-shortcut {
+  display: flex;
+  align-items: flex-start;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px 0;
+  border-top: 1px solid var(--border);
+  overflow-wrap: anywhere;
+}
+.maintenance-shortcut small {
+  color: var(--muted);
+}
+.maintenance-shortcut button {
+  max-width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  text-align: left;
+}
+@media (max-width: 1100px) {
+  .maintenance-report-layout {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 18px;
+  }
+}
+@media (max-width: 650px) {
+  .application-page {
+    padding: 16px;
+  }
+  .application-cards {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+.maintenance-panel summary {
+  cursor: pointer;
+  color: #c6ede8;
+  font-weight: 650;
+  font-size: 16px;
+}
+.maintenance-panel h3 {
+  font-size: 19px;
+  margin: 0 0 8px;
+}
+.maintenance-panel label {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  font-size: 16px;
+  font-weight: 500;
+  margin: 0 0 14px;
+}
+.maintenance-panel input:not([type="checkbox"]),
+.maintenance-panel select,
+.maintenance-panel textarea {
+  width: 100%;
+  min-width: 0;
+  min-height: 40px;
+  padding: 9px 11px;
+  border: 1px solid #30485b;
+  border-radius: 6px;
+  background: #0c1d2c;
+  color: #e2eef4;
+  font-family: inherit;
+  font-size: 16px;
+  line-height: 1.5;
+}
+.maintenance-panel textarea {
+  resize: vertical;
+}
+.maintenance-panel button {
+  border: 1px solid #3b756f;
+  background: #173c40;
+  color: #c6eee8;
+  border-radius: 5px;
+  min-height: 40px;
+  padding: 9px 13px;
+  font-size: 16px;
+  font-weight: 550;
+  cursor: pointer;
+  margin: 0;
+}
+.maintenance-panel button:disabled {
+  opacity: 0.5;
+  cursor: wait;
+}
+.maintenance-panel .maintenance-check {
+  flex-direction: row;
+  align-items: center;
+}
+.maintenance-caption {
+  color: #92adbf;
+  font-size: 15px;
+  line-height: 1.5;
+}
+.maintenance-report-detail {
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.maintenance-report-detail p {
+  margin: 8px 0;
+}
+.maintenance-report-detail summary {
+  font-size: 14px;
+}
+.maintenance-emergency {
+  padding: 9px;
+  border: 1px solid #d29854;
+  border-radius: 5px;
+  color: #ffd6a4;
+  font-size: 14px;
+  line-height: 1.5;
+}
+#maintenanceMessage {
+  color: #9cb5c4;
+  min-height: 18px;
+  margin: 0 0 4px;
+  font-size: 15px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+.fullscreen-controls .maintenance-panel {
+  padding: 16px 0;
+}
+/* Maintenance workspace: presentation-only refinement of the existing forms. */
+.main-content:has(> #maintenancePage:not([hidden])) {
+  padding: 24px 28px;
+}
+.main-content:has(> #maintenancePage:not([hidden])) > .page-heading {
+  display: none;
+}
+#maintenancePage {
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  scroll-margin-top: 98px;
+}
+#problemReportForm {
+  scroll-margin-top: 100px;
+}
+.maintenance-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 22px;
+}
+.maintenance-header h1 {
+  font-size: 30px;
+  letter-spacing: -0.7px;
+  line-height: 1.2;
+  margin: 0 0 7px;
+}
+.maintenance-header .eyebrow {
+  font-size: 13px;
+  letter-spacing: 1.5px;
+  margin-bottom: 7px;
+}
+.maintenance-header .application-context {
+  font-size: 15px;
+  color: #9fb6c7;
+  max-width: 720px;
+  line-height: 1.55;
+  margin: 0;
+}
+.maintenance-primary,
+#maintenancePage .maintenance-primary {
+  flex-shrink: 0;
+  min-height: 40px;
+  padding: 10px 16px;
+  border: 1px solid #64cfbe;
+  border-radius: 6px;
+  background: #54c9b7;
+  color: #062b2b;
+}
+.maintenance-primary,
+#maintenancePage .maintenance-primary {
+  font-family: inherit;
+  font-size: 16px;
+  font-weight: 650;
+  line-height: 1.3;
+}
+.maintenance-primary:hover:not(:disabled),
+#maintenancePage .maintenance-primary:hover:not(:disabled) {
+  background: #7bdbca;
+}
+.maintenance-primary span {
+  margin-right: 6px;
+}
+.maintenance-overview {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 20px;
+}
+.maintenance-metric {
+  padding: 14px 16px;
+  border: 1px solid #20394a;
+  border-radius: 8px;
+  background: #112535;
+}
+.maintenance-metric > span {
+  color: #b3c6d4;
+  font-size: 15px;
+  font-weight: 500;
+}
+.maintenance-metric strong {
+  display: block;
+  color: #eef7fa;
+  font-size: 30px;
+  letter-spacing: -0.7px;
+  line-height: 1.25;
+  margin: 5px 0;
+  font-variant-numeric: tabular-nums;
+}
+.maintenance-metric small {
+  color: #8da7ba;
+  font-size: 14px;
+  line-height: 1.5;
+}
+.maintenance-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 4px 0 12px;
+}
+.maintenance-role-control {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+#maintenancePage .maintenance-role-control label {
+  margin: 0;
+  color: #b5c9d6;
+  font-size: 15px;
+  white-space: nowrap;
+}
+#maintenancePage .maintenance-role-control select {
+  width: 160px;
+  min-height: 36px;
+  padding: 7px 10px;
+  font-size: 15px;
+}
+.maintenance-toolbar .maintenance-caption {
+  margin: 0;
+  font-size: 14px;
+}
+.maintenance-toolbar #maintenanceRefresh {
+  margin-left: auto;
+  white-space: nowrap;
+}
+#maintenancePage .maintenance-secondary,
+#maintenancePage .maintenance-tertiary {
+  background: transparent;
+  border-color: #375063;
+  color: #c9dbe5;
+}
+#maintenancePage .maintenance-tertiary {
+  border-color: transparent;
+  color: #9db8c9;
+}
+#maintenancePage .maintenance-secondary:hover,
+#maintenancePage .maintenance-tertiary:hover {
+  background: #193142;
+  color: #eff9ff;
+}
+.maintenance-card {
+  padding: 20px;
+  background: #102332;
+  border: 1px solid #263d4f;
+  border-radius: 9px;
+}
+.maintenance-card-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+#maintenancePage .maintenance-card-heading h3 {
+  font-size: 19px;
+  font-weight: 650;
+  margin: 0 0 5px;
+  letter-spacing: -0.15px;
+}
+.maintenance-card-heading p {
+  margin: 0;
+  color: #94aebe;
+  font-size: 15px;
+  line-height: 1.5;
+}
+.maintenance-field-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 14px;
+}
+.maintenance-field-row > label {
+  min-width: 0;
+}
+#maintenanceUseSelection {
+  background: transparent;
+  border-color: transparent;
+  color: #83cfc7;
+  min-height: 30px;
+  padding: 2px 0;
+  font-size: 15px;
+  margin: -5px 0 12px;
+}
+.maintenance-panel input::placeholder,
+.maintenance-panel textarea::placeholder {
+  color: #708b9d;
+}
+.maintenance-panel textarea {
+  min-height: 92px;
+}
+.maintenance-panel .maintenance-check {
+  align-items: center;
+  gap: 8px;
+  font-weight: 400;
+  font-size: 15px;
+}
+.maintenance-panel input[type="checkbox"] {
+  width: 15px;
+  height: 15px;
+  accent-color: #54c9b7;
+  margin: 0;
+}
+.maintenance-form-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding-top: 6px;
+}
+.maintenance-count {
+  background: #1c3a49;
+  border: 1px solid #315364;
+  border-radius: 12px;
+  padding: 3px 8px;
+  font-size: 15px;
+  color: #c5e2eb;
+  font-variant-numeric: tabular-nums;
+}
+.maintenance-recent-reports {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+#maintenancePage .maintenance-report-preview {
+  display: grid;
+  gap: 6px;
+  width: 100%;
+  text-align: left;
+  background: #0d1e2c;
+  border-color: #294253;
+  padding: 12px;
+  border-radius: 7px;
+  font-weight: 400;
+}
+#maintenancePage .maintenance-report-preview:hover {
+  border-color: #527d84;
+  background: #142d3b;
+}
+#maintenancePage .maintenance-report-preview[aria-pressed="true"] {
+  border-color: #4faeaa;
+  background: #13313c;
+}
+.maintenance-preview-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  font: 14px/1.4 var(--mono);
+  color: #92adbe;
+}
+.maintenance-preview-status {
+  font:
+    14px/1.3 system-ui,
+    sans-serif;
+  color: #a2dcce;
+  background: #163b3d;
+  border-radius: 4px;
+  padding: 3px 7px;
+}
+.maintenance-report-preview strong {
+  font-size: 16px;
+  line-height: 1.4;
+  font-weight: 550;
+  overflow-wrap: anywhere;
+}
+.maintenance-preview-context {
+  font-size: 14px;
+  line-height: 1.4;
+  color: #8da9ba;
+}
+.maintenance-empty-state {
+  padding: 22px 16px;
+  background: #0d1f2d;
+  border: 1px dashed #314858;
+  border-radius: 7px;
+  text-align: center;
+}
+.maintenance-empty-state strong {
+  color: #bbcfdd;
+  font-size: 16px;
+  font-weight: 550;
+}
+.maintenance-empty-state p {
+  color: #819eaf;
+  margin: 6px 0 0;
+  font-size: 15px;
+  line-height: 1.5;
+}
+#maintenanceReportDetail:not(:empty) {
+  border-top: 1px solid #294052;
+  padding-top: 12px;
+  margin-top: 6px;
+}
+#maintenanceReportDetail > p:first-child {
+  font-size: 14px;
+  color: #85a1b6;
+}
+#maintenanceReportDetail > p:nth-child(2),
+#maintenanceReportDetail > p:nth-child(3) {
+  color: #9db6c8;
+  font-size: 15px;
+}
+#maintenanceReportDetail > p:nth-child(4) {
+  color: #edf6fa;
+  font-weight: 600;
+}
+#maintenanceReportDetail details {
+  margin-top: 14px;
+}
+#maintenanceReportDetail summary {
+  color: #87cfc6;
+  font-size: 15px;
+  padding: 5px 0;
+}
+#managerTriageForm {
+  border-top: 1px solid #2a4254;
+  padding-top: 18px;
+  margin-top: 16px;
+}
+#managerTriageForm h3 {
+  font-size: 18px;
+  margin-bottom: 14px;
+}
+#maintenancePage :is(button, input, select, textarea, summary):focus-visible {
+  outline: 2px solid #72ddcf;
+  outline-offset: 2px;
+}
+@media (max-width: 1100px) {
+  .maintenance-toolbar {
+    flex-wrap: wrap;
+  }
+}
+@media (max-width: 650px) {
+  .main-content:has(> #maintenancePage:not([hidden])) {
+    padding: 20px 14px;
+  }
+  .maintenance-header {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 14px;
+    margin-bottom: 18px;
+  }
+  .maintenance-header h1 {
+    font-size: 27px;
+  }
+  .maintenance-overview {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+  .maintenance-metric {
+    padding: 12px;
+  }
+  .maintenance-metric strong {
+    font-size: 27px;
+  }
+  .maintenance-card {
+    padding: 16px;
+  }
+  .maintenance-toolbar {
+    gap: 10px;
+  }
+  .maintenance-toolbar .maintenance-caption {
+    order: 3;
+    width: 100%;
+  }
+  .maintenance-toolbar #maintenanceRefresh {
+    margin-left: auto;
+    padding: 7px 9px;
+    min-height: 44px;
+    font-size: 15px;
+  }
+  .maintenance-tabs {
+    gap: 0 14px;
+    margin-bottom: 16px;
+  }
+  #maintenancePage .maintenance-tabs button {
+    font-size: 15px;
+    padding: 10px 0;
+  }
+  #maintenancePage {
+    scroll-margin-top: 155px;
+  }
+  #problemReportForm {
+    scroll-margin-top: 155px;
+  }
+  .maintenance-panel input:not([type="checkbox"]),
+  .maintenance-panel select,
+  .maintenance-panel textarea {
+    font-size: 19px;
+    min-height: 44px;
+  }
+  #maintenancePage .maintenance-role-control select {
+    font-size: 19px;
+    min-height: 44px;
+  }
+  .maintenance-primary,
+  #maintenancePage .maintenance-primary {
+    min-height: 44px;
+  }
+}
+@media (max-width: 540px) {
+  .maintenance-field-row {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0;
+  }
+  .maintenance-role-control {
+    gap: 7px;
+  }
+  #maintenancePage .maintenance-role-control select {
+    width: 120px;
+  }
 }
 .presentation-controls[hidden] {
   display: none;

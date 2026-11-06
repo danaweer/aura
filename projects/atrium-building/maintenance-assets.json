@@ -1,0 +1,44 @@
+{
+  "schema_version": 1,
+  "assets": [
+    {
+      "project_id": "atrium-building",
+      "asset_id": "AHU-L1-01",
+      "name": "Level 1 indoor AHU · long axis front to back",
+      "system": "ventilation",
+      "room_id": "L1-M01",
+      "floor": 1,
+      "parent_asset_id": null,
+      "criticality": "unassessed",
+      "model_ref": "projects/atrium-building/equipment-plan.js#AHU-L1-01",
+      "design_state": "concept",
+      "commissioning_state": "not_connected"
+    },
+    {
+      "project_id": "atrium-building",
+      "asset_id": "BS-G-01",
+      "name": "Proposed two-pump domestic booster skid",
+      "system": "domestic-water",
+      "room_id": "G-M02",
+      "floor": 0,
+      "parent_asset_id": null,
+      "criticality": "unassessed",
+      "model_ref": "projects/atrium-building/equipment-plan.js#BS-G-01",
+      "design_state": "concept",
+      "commissioning_state": "not_connected"
+    },
+    {
+      "project_id": "atrium-building",
+      "asset_id": "FP-01",
+      "name": "Main fire pump and motor",
+      "system": "fire-water",
+      "room_id": "G-M01",
+      "floor": 0,
+      "parent_asset_id": null,
+      "criticality": "unassessed",
+      "model_ref": "projects/atrium-building/equipment-plan.js#FP-01",
+      "design_state": "concept",
+      "commissioning_state": "not_connected"
+    }
+  ]
+}

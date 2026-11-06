@@ -1,0 +1,425 @@
+{
+  "schema_version": 1,
+  "rooms": [
+    {
+      "project_id": "atrium-building",
+      "room_id": "G-01",
+      "name": "Visitor lounge",
+      "floor": 0
+    },
+    {
+      "project_id": "atrium-building",
+      "room_id": "G-02",
+      "name": "Visitor workspace",
+      "floor": 0
+    },
+    {
+      "project_id": "atrium-building",
+      "room_id": "G-03",
+      "name": "Meeting A",
+      "floor": 0
+    },
+    {
+      "project_id": "atrium-building",
+      "room_id": "G-04",
+      "name": "Meeting B",
+      "floor": 0
+    },
+    {
+      "project_id": "atrium-building",
+      "room_id": "G-05",
+      "name": "Training room",
+      "floor": 0
+    },
+    {
+      "project_id": "atrium-building",
+      "room_id": "G-06",
+      "name": "HR office",
+      "floor": 0
+    },
+    {
+      "project_id": "atrium-building",
+      "room_id": "G-07",
+      "name": "Finance office",
+      "floor": 0
+    },
+    {
+      "project_id": "atrium-building",
+      "room_id": "G-M01",
+      "name": "Fire pump room",
+      "floor": 0
+    },
+    {
+      "project_id": "atrium-building",
+      "room_id": "G-M02",
+      "name": "Water / mechanical room",
+      "floor": 0
+    },
+    {
+      "project_id": "atrium-building",
+      "room_id": "G-E01",
+      "name": "Main electrical room",
+      "floor": 0
+    },
+    {
+      "project_id": "atrium-building",
+      "room_id": "G-I01",
+      "name": "Server / UPS",
+      "floor": 0
+    },
+    {
+      "project_id": "atrium-building",
+      "room_id": "G-B01",
+      "name": "BMS / security",
+      "floor": 0
+    },
+    {
+      "project_id": "atrium-building",
+      "room_id": "G-S01",
+      "name": "Stair A",
+      "floor": 0
+    },
+    {
+      "project_id": "atrium-building",
+      "room_id": "G-S02",
+      "name": "Stair B",
+      "floor": 0
+    },
+    {
+      "project_id": "atrium-building",
+      "room_id": "G-W01",
+      "name": "WC suite A",
+      "floor": 0
+    },
+    {
+      "project_id": "atrium-building",
+      "room_id": "G-W04",
+      "name": "WC suite B",
+      "floor": 0
+    },
+    {
+      "project_id": "atrium-building",
+      "room_id": "G-J01",
+      "name": "Janitor",
+      "floor": 0
+    },
+    {
+      "project_id": "atrium-building",
+      "room_id": "G-R01",
+      "name": "Wet riser",
+      "floor": 0
+    },
+    {
+      "project_id": "atrium-building",
+      "room_id": "G-W02",
+      "name": "Accessible WC",
+      "floor": 0
+    },
+    {
+      "project_id": "atrium-building",
+      "room_id": "G-P01",
+      "name": "Pantry + break area",
+      "floor": 0
+    },
+    {
+      "project_id": "atrium-building",
+      "room_id": "G-R02",
+      "name": "Dry + HVAC risers",
+      "floor": 0
+    },
+    {
+      "project_id": "atrium-building",
+      "room_id": "G-I02",
+      "name": "IDF / floor distribution",
+      "floor": 0
+    },
+    {
+      "project_id": "atrium-building",
+      "room_id": "G-C01",
+      "name": "Lift",
+      "floor": 0
+    },
+    {
+      "project_id": "atrium-building",
+      "room_id": "G-C02",
+      "name": "Central stair",
+      "floor": 0
+    },
+    {
+      "project_id": "atrium-building",
+      "room_id": "L1-01",
+      "name": "Team workspace A",
+      "floor": 1
+    },
+    {
+      "project_id": "atrium-building",
+      "room_id": "L1-02",
+      "name": "Project office",
+      "floor": 1
+    },
+    {
+      "project_id": "atrium-building",
+      "room_id": "L1-03",
+      "name": "Team lead",
+      "floor": 1
+    },
+    {
+      "project_id": "atrium-building",
+      "room_id": "L1-04",
+      "name": "Team workspace B",
+      "floor": 1
+    },
+    {
+      "project_id": "atrium-building",
+      "room_id": "L1-05",
+      "name": "Meeting C",
+      "floor": 1
+    },
+    {
+      "project_id": "atrium-building",
+      "room_id": "L1-06",
+      "name": "Focus / project",
+      "floor": 1
+    },
+    {
+      "project_id": "atrium-building",
+      "room_id": "L1-07",
+      "name": "Meeting D",
+      "floor": 1
+    },
+    {
+      "project_id": "atrium-building",
+      "room_id": "L1-08",
+      "name": "Print / archive",
+      "floor": 1
+    },
+    {
+      "project_id": "atrium-building",
+      "room_id": "L1-09",
+      "name": "Flexible office",
+      "floor": 1
+    },
+    {
+      "project_id": "atrium-building",
+      "room_id": "L1-M01",
+      "name": "AHU / ventilation",
+      "floor": 1
+    },
+    {
+      "project_id": "atrium-building",
+      "room_id": "L1-B01",
+      "name": "IT support",
+      "floor": 1
+    },
+    {
+      "project_id": "atrium-building",
+      "room_id": "L1-S01",
+      "name": "Stair A",
+      "floor": 1
+    },
+    {
+      "project_id": "atrium-building",
+      "room_id": "L1-S02",
+      "name": "Stair B",
+      "floor": 1
+    },
+    {
+      "project_id": "atrium-building",
+      "room_id": "L1-W01",
+      "name": "WC suite A",
+      "floor": 1
+    },
+    {
+      "project_id": "atrium-building",
+      "room_id": "L1-W04",
+      "name": "WC suite B",
+      "floor": 1
+    },
+    {
+      "project_id": "atrium-building",
+      "room_id": "L1-J01",
+      "name": "Janitor",
+      "floor": 1
+    },
+    {
+      "project_id": "atrium-building",
+      "room_id": "L1-R01",
+      "name": "Wet riser",
+      "floor": 1
+    },
+    {
+      "project_id": "atrium-building",
+      "room_id": "L1-W02",
+      "name": "Accessible WC",
+      "floor": 1
+    },
+    {
+      "project_id": "atrium-building",
+      "room_id": "L1-P01",
+      "name": "Pantry + break area",
+      "floor": 1
+    },
+    {
+      "project_id": "atrium-building",
+      "room_id": "L1-R02",
+      "name": "Dry + HVAC risers",
+      "floor": 1
+    },
+    {
+      "project_id": "atrium-building",
+      "room_id": "L1-I02",
+      "name": "IDF / floor distribution",
+      "floor": 1
+    },
+    {
+      "project_id": "atrium-building",
+      "room_id": "L1-C01",
+      "name": "Lift",
+      "floor": 1
+    },
+    {
+      "project_id": "atrium-building",
+      "room_id": "L1-C02",
+      "name": "Central stair",
+      "floor": 1
+    },
+    {
+      "project_id": "atrium-building",
+      "room_id": "L2-01",
+      "name": "CEO office",
+      "floor": 2
+    },
+    {
+      "project_id": "atrium-building",
+      "room_id": "L2-02",
+      "name": "Executive office",
+      "floor": 2
+    },
+    {
+      "project_id": "atrium-building",
+      "room_id": "L2-03",
+      "name": "Executive assistant",
+      "floor": 2
+    },
+    {
+      "project_id": "atrium-building",
+      "room_id": "L2-04",
+      "name": "Boardroom",
+      "floor": 2
+    },
+    {
+      "project_id": "atrium-building",
+      "room_id": "L2-05",
+      "name": "Executive meeting",
+      "floor": 2
+    },
+    {
+      "project_id": "atrium-building",
+      "room_id": "L2-06",
+      "name": "Director office",
+      "floor": 2
+    },
+    {
+      "project_id": "atrium-building",
+      "room_id": "L2-07",
+      "name": "Strategy room",
+      "floor": 2
+    },
+    {
+      "project_id": "atrium-building",
+      "room_id": "L2-08",
+      "name": "Executive lounge",
+      "floor": 2
+    },
+    {
+      "project_id": "atrium-building",
+      "room_id": "L2-09",
+      "name": "Records / store",
+      "floor": 2
+    },
+    {
+      "project_id": "atrium-building",
+      "room_id": "L2-M01",
+      "name": "AHU / ventilation",
+      "floor": 2
+    },
+    {
+      "project_id": "atrium-building",
+      "room_id": "L2-B01",
+      "name": "Facilities office",
+      "floor": 2
+    },
+    {
+      "project_id": "atrium-building",
+      "room_id": "L2-S01",
+      "name": "Stair A",
+      "floor": 2
+    },
+    {
+      "project_id": "atrium-building",
+      "room_id": "L2-S02",
+      "name": "Stair B",
+      "floor": 2
+    },
+    {
+      "project_id": "atrium-building",
+      "room_id": "L2-W01",
+      "name": "WC suite A",
+      "floor": 2
+    },
+    {
+      "project_id": "atrium-building",
+      "room_id": "L2-W04",
+      "name": "WC suite B",
+      "floor": 2
+    },
+    {
+      "project_id": "atrium-building",
+      "room_id": "L2-J01",
+      "name": "Janitor",
+      "floor": 2
+    },
+    {
+      "project_id": "atrium-building",
+      "room_id": "L2-R01",
+      "name": "Wet riser",
+      "floor": 2
+    },
+    {
+      "project_id": "atrium-building",
+      "room_id": "L2-W02",
+      "name": "Accessible WC",
+      "floor": 2
+    },
+    {
+      "project_id": "atrium-building",
+      "room_id": "L2-P01",
+      "name": "Pantry + break area",
+      "floor": 2
+    },
+    {
+      "project_id": "atrium-building",
+      "room_id": "L2-R02",
+      "name": "Dry + HVAC risers",
+      "floor": 2
+    },
+    {
+      "project_id": "atrium-building",
+      "room_id": "L2-I02",
+      "name": "IDF / floor distribution",
+      "floor": 2
+    },
+    {
+      "project_id": "atrium-building",
+      "room_id": "L2-C01",
+      "name": "Lift",
+      "floor": 2
+    },
+    {
+      "project_id": "atrium-building",
+      "room_id": "L2-C02",
+      "name": "Central stair",
+      "floor": 2
+    }
+  ]
+}

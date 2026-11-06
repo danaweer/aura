@@ -20,6 +20,7 @@ from urllib.parse import urlsplit
 
 from device_reader import HEALTH_NAMES, read_latest
 from history import HistoryStore
+from maintenance_api import handle_maintenance
 from projects import project_catalog
 
 HERE = Path(__file__).resolve().parent
@@ -300,8 +301,10 @@ def make_handler(hub):
             self.wfile.write(raw)
 
         def do_GET(self):
+            if handle_maintenance(self, hub.store.maintenance):
+                return
             route = urlsplit(self.path).path
-            static = {"/": "index.html", "/index.html": "index.html", "/app.js": "app.js", "/telemetry.js": "telemetry.js", "/style.css": "style.css", "/viewer-fullscreen.js": "viewer-fullscreen.js"}
+            static = {"/": "index.html", "/index.html": "index.html", "/app.js": "app.js", "/maintenance-ui.js": "maintenance-ui.js", "/telemetry.js": "telemetry.js", "/style.css": "style.css", "/viewer-fullscreen.js": "viewer-fullscreen.js"}
             for filename in ("building-viewer.js", "projects/atrium-building/blueprint.js", "project-ui.js", "vendor/three.module.js", "vendor/three.core.js", "vendor/OrbitControls.js", "projects/meeting-room/model.js", "projects/atrium-building/model.js", "projects/atrium-building/layout.js", "projects/atrium-building/interiors.js", "projects/atrium-building/geometry.js", "projects/atrium-building/architecture.js", "projects/atrium-building/services.js", "projects/atrium-building/devices.js", "projects/atrium-building/device-plan.js", "projects/atrium-building/reference/device-positions-d02.pdf", "projects/atrium-building/visibility.js", "projects/atrium-building/stairs.js", "projects/atrium-building/egress.js", "projects/atrium-building/egress-plan.js", "projects/atrium-building/extinguishers.js", "projects/atrium-building/equipment.js", "projects/atrium-building/main-service-plan.js", "projects/atrium-building/main-services.js", "projects/atrium-building/reference/main-service-routes.pdf", "projects/atrium-building/equipment-plan.js", "projects/atrium-building/reference/equipment-placement-p01.pdf", "projects/atrium-building/washroom-plan.js", "projects/atrium-building/washrooms.js", "projects/atrium-building/washroom-plumbing.js", "projects/atrium-building/extinguisher-plan.js", "projects/atrium-building/reference/extinguishers-f01-p10.pdf", "projects/atrium-building/reference/extinguishers-f01-p11.pdf", "projects/atrium-building/reference/extinguishers-f01-p12.pdf", "projects/atrium-building/reference/extinguishers-f01-p13.pdf", "projects/atrium-building/reference/extinguishers-f01-p14.pdf", "projects/atrium-building/reference/means-of-egress-e01.pdf", "projects/meeting-room/preview.svg", "projects/atrium-building/preview.svg"):
                 static["/" + filename] = filename
             if route in static:
@@ -396,6 +399,8 @@ def make_handler(hub):
             self.wfile.flush()
 
         def do_POST(self):
+            if handle_maintenance(self, hub.store.maintenance):
+                return
             if urlsplit(self.path).path != "/api/demo/toggle-alarm":
                 self.json_response(404, {"error": "Not found"})
             elif not hub.demo:

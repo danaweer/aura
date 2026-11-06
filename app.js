@@ -1,11 +1,16 @@
 /* aura Meeting Room Digital Twin. Self-contained Canvas2D perspective renderer. */
 import { FLOORS, ROOM_COUNT } from "./projects/atrium-building/layout.js";
-import { ProjectLibrary, renderProjectDetails } from "./project-ui.js";
+import {
+  ProjectLibrary,
+  renderProjectDetails,
+  APPLICATION_PAGES,
+} from "./project-ui.js";
 import { buildMeetingRoom } from "./projects/meeting-room/model.js";
 import { TelemetrySession, mergeSamples, chartSegments } from "./telemetry.js";
 import { ViewerFullscreen } from "./viewer-fullscreen.js";
 import { ROUTE_SYSTEMS } from "./projects/atrium-building/main-service-plan.js";
 import { DEVICE_CATEGORIES } from "./projects/atrium-building/device-plan.js";
+import { MaintenancePanel } from "./maintenance-ui.js";
 
 const $ = (id) => document.getElementById(id);
 const blueprintNames = [
@@ -87,6 +92,7 @@ let activeProject = null,
   buildingViewer = null,
   projectRequest = 0,
   library = null;
+const maintenancePanel = new MaintenancePanel();
 let history = [],
   historyRequest = 0,
   sourceKey = null,
@@ -834,7 +840,6 @@ function inspect(key) {
   $("modelDetails").hidden = key !== "hvac";
   $("freshness").hidden = key === "hvac";
   $("deviceFoot").hidden = key === "hvac";
-  $("navSensors").classList.toggle("active", key === "mxchip");
   $("navAlarm").classList.toggle("active", key === "alarm");
   $("inspectorPanel").scrollIntoView({
     behavior: reducedMotion.matches ? "instant" : "smooth",
@@ -850,7 +855,6 @@ for (const item of document.querySelectorAll("[data-asset]")) {
     }
   });
 }
-$("navSensors").onclick = () => inspect("mxchip");
 $("navAlarm").onclick = () => inspect("alarm");
 $("navTwin").onclick = () => {
   if ($("modelWorkspace").hidden)
@@ -954,6 +958,8 @@ function renderRoomHeading() {
   document.title = `aura — ${room.name}`;
 }
 function showLibrary() {
+  hideApplicationPages();
+  maintenancePanel.setActive(false);
   viewerFullscreen.close();
   projectRequest++;
   $("projectsView").hidden = false;
@@ -970,23 +976,24 @@ function showLibrary() {
     `${library?.projects.length || 0} SAVED PROJECTS`;
   $("connLabel").textContent = "LOCAL WORKSPACE";
   $("connState").className = "connection-status online";
-  $("navProjects").classList.add("active");
-  $("navTwin").classList.remove("active");
-  $("navSensors").disabled = true;
+  markDestination("navProjects");
+  $("navSensors").disabled = false;
   $("navAlarm").disabled = true;
   document.title = "aura — Projects";
 }
 async function activateProject(project) {
+  hideApplicationPages();
+  if (activeProject?.id !== project.id) maintenancePanel.setContext(null);
   activeProject = project;
   const request = ++projectRequest;
   const roomProject = project.model.kind === "meeting-room";
+  maintenancePanel.setActive(false);
   if (roomProject) viewerFullscreen.close();
   $("fullscreenBtn").hidden = roomProject;
   $("projectsView").hidden = true;
   $("modelWorkspace").hidden = false;
-  $("navProjects").classList.remove("active");
-  $("navTwin").classList.add("active");
-  $("navSensors").disabled = !roomProject;
+  markDestination("navTwin");
+  $("navSensors").disabled = false;
   $("navAlarm").disabled = !roomProject;
   $("navSensors").classList.remove("active");
   $("navAlarm").classList.remove("active");
@@ -1089,6 +1096,7 @@ async function activateProject(project) {
         buildingViewer = new BuildingViewer(
           $("buildingCanvas"),
           (part) => {
+            maintenancePanel.setContext(part);
             $("buildingPartTitle").textContent =
               part.label || "Architectural element";
             const level =
@@ -1394,8 +1402,129 @@ const viewerFullscreen = new ViewerFullscreen({
     $("egressOptions"),
     $("roomSelect").closest(".room-navigator"),
     $("buildingPartTitle").closest(".building-part"),
+    $("openAssetMaintenance").closest(".maintenance-shortcut"),
   ],
   onResize: () => buildingViewer?.resize(),
 });
-library = new ProjectLibrary(activateProject, showLibrary);
+function hideApplicationPages() {
+  for (const page of document.querySelectorAll(".application-page"))
+    page.hidden = true;
+}
+function markDestination(id) {
+  for (const button of document.querySelectorAll(".navrail .nav-item")) {
+    button.classList.toggle("active", button.id === id);
+    if (button.id === id) button.setAttribute("aria-current", "page");
+    else button.removeAttribute("aria-current");
+  }
+}
+function showApplicationPage(page, params = {}) {
+  viewerFullscreen.close();
+  projectRequest++;
+  maintenancePanel.setActive(false);
+  buildingViewer?.setActive(false);
+  hideApplicationPages();
+  $("projectsView").hidden = true;
+  $("modelWorkspace").hidden = true;
+  $("navSensors").disabled = false;
+  $("navAlarm").disabled = true;
+  const nav = {
+    dashboard: "navDashboard",
+    maintenance: "navMaintenance",
+    calendar: "navCalendar",
+    notifications: "navNotifications",
+    "iot-devices": "navSensors",
+    "users-access": "navUsers",
+  };
+  markDestination(nav[page]);
+  const title = APPLICATION_PAGES[page];
+  $("roomName").textContent = title;
+  $("roomTrail").textContent = title;
+  $("roomLocation").textContent = "AURA WORKSPACE";
+  $("projectSubtitle").textContent =
+    page === "maintenance"
+      ? "Corrective reporting and manager review · Atrium building pilot"
+      : "Your projects and building operations";
+  $("modeChip").textContent = [
+    "calendar",
+    "notifications",
+    "users-access",
+  ].includes(page)
+    ? "PLANNED"
+    : "WORKSPACE";
+  $("modeChip").classList.remove("simulated");
+  $("projectMeta").textContent = "AURA";
+  $("connLabel").textContent = "LOCAL WORKSPACE";
+  $("connState").className = "connection-status online";
+  document.title = `aura — ${title}`;
+  if (page === "maintenance") {
+    $("maintenancePage").hidden = false;
+    maintenancePanel.open(params);
+  } else if (page === "dashboard") {
+    $("dashboardPage").hidden = false;
+    $("dashboardProjectCount").textContent =
+      `${library.projects.length} saved projects · Open your existing models`;
+  } else if (page === "iot-devices") {
+    $("iotDevicesPage").hidden = false;
+    const cards = $("iotDeviceCards");
+    cards.replaceChildren();
+    for (const project of library.projects) {
+      const card = document.createElement("article");
+      card.className = "application-card";
+      const name = document.createElement("h3");
+      name.textContent = project.name;
+      card.append(name);
+      for (const device of project.iot) {
+        const p = document.createElement("p");
+        p.textContent = `${device.name} · ${device.id} · ${device.description}`;
+        card.append(p);
+      }
+      const note = document.createElement("p");
+      note.textContent = project.iot.length
+        ? "Assignment is configured. Inspect its project for current connection and data quality."
+        : "No IoT devices assigned. Building equipment remains unconnected — integration planned.";
+      const open = document.createElement("button");
+      open.className = "projects-button";
+      open.type = "button";
+      open.textContent = project.iot.length
+        ? "Open project telemetry"
+        : "Open 3D project";
+      open.onclick = async () => {
+        await library.open(project.id);
+        if (project.model.kind === "meeting-room") inspect("mxchip");
+      };
+      card.append(note, open);
+      cards.append(card);
+    }
+  } else {
+    $("plannedPage").hidden = false;
+    $("plannedPageTitle").textContent = title;
+    $("plannedPageDescription").textContent = {
+      calendar:
+        "Maintenance scheduling and calendar services are planned. No schedules or generated occurrences are running.",
+      notifications:
+        "The notification inbox and delivery services are planned. No notification feed is connected.",
+      "users-access":
+        "A future administrator portal will manage users and access. Authentication and access control are not implemented.",
+    }[page];
+  }
+}
+library = new ProjectLibrary(activateProject, showLibrary, showApplicationPage);
+for (const button of document.querySelectorAll("[data-app-page]"))
+  button.onclick = () =>
+    library.navigate(
+      button.dataset.appPage,
+      button.dataset.appPage === "maintenance"
+        ? { project_id: activeProject?.id || "atrium-building" }
+        : {},
+    );
+$("openAssetMaintenance").onclick = () => {
+  const part = maintenancePanel.context;
+  library.navigate("maintenance", {
+    project_id: activeProject?.id || "atrium-building",
+    asset_id: part?.equipmentId || part?.anchorAssetId || part?.assetId,
+    room_id: part?.roomId,
+  });
+};
+$("maintenanceUsePilot").onclick = () =>
+  library.navigate("maintenance", { project_id: "atrium-building" });
 library.load();

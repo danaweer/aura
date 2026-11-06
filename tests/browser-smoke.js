@@ -9,6 +9,8 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { setTimeout as delay } from "node:timers/promises";
 import { chromium, expect } from "@playwright/test";
+import { checkMaintenance } from "./maintenance-browser.js";
+import { checkNavigation } from "./navigation-browser.js";
 
 const root = fileURLToPath(new URL("..", import.meta.url));
 const temporary = await mkdtemp(path.join(os.tmpdir(), "aura-browser-"));
@@ -96,6 +98,9 @@ try {
     { timeout: 15000 },
   );
   await expect(page.locator("#connLabel")).toHaveText("MODEL ONLY · NO IoT");
+  await mkdir(path.join(root, "test-results"), { recursive: true });
+  await checkMaintenance(page, root);
+  await checkNavigation(page, root);
   await expect(page.locator("#inspectorPanel")).toBeHidden();
   await expect(page.locator("#roomTelemetry")).toBeHidden();
   await expect(page.locator("#projectIot")).toContainText(
