@@ -67,8 +67,8 @@ export async function checkNavigation(page, root) {
     "Asset FP-01",
   );
   await page.locator("#navUsers").click();
-  await expect(page.locator("#plannedPageTitle")).toHaveText("Users & Access");
-  await expect(page.locator("#plannedPage")).toContainText("not implemented");
+  await expect(page.locator("#usersPage")).toBeVisible();
+  await expect(page.locator("#usersTitle")).toHaveText("Users & Access");
   await page.locator("#navSensors").click();
   await expect(page.locator("#iotDevicesPage")).toContainText("MXCHIP AZ3166");
   await expect(page.locator("#iotDevicesPage")).toContainText(

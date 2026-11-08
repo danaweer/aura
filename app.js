@@ -1,3 +1,4 @@
+import { UsersPanel } from "./users-ui.js";
 /* aura Meeting Room Digital Twin. Self-contained Canvas2D perspective renderer. */
 import { FLOORS, ROOM_COUNT } from "./projects/atrium-building/layout.js";
 import {
@@ -10,6 +11,7 @@ import { TelemetrySession, mergeSamples, chartSegments } from "./telemetry.js";
 import { ViewerFullscreen } from "./viewer-fullscreen.js";
 import { ROUTE_SYSTEMS } from "./projects/atrium-building/main-service-plan.js";
 import { DEVICE_CATEGORIES } from "./projects/atrium-building/device-plan.js";
+import { authState, authFetch, can, expireAuthentication } from "./auth-ui.js";
 import { MaintenancePanel } from "./maintenance-ui.js";
 
 const $ = (id) => document.getElementById(id);
@@ -202,7 +204,7 @@ function setMode(demo) {
   if (!isRoomOpen()) return;
   $("modeChip").classList.toggle("simulated", simulation);
   $("modeChip").textContent = simulation ? "SIMULATED MODE" : "LIVE DEVICE";
-  $("demoAlarmBtn").hidden = !simulation;
+  $("demoAlarmBtn").hidden = !simulation || !can("system_operations");
   $("sensorCount").textContent = simulation
     ? "1 SIMULATED SENSOR"
     : "1 CONNECTED SENSOR";
@@ -360,9 +362,10 @@ function receive(payload) {
 }
 
 async function loadHistory() {
+  if (!authState.user.projects.includes("meeting-room")) return;
   const request = ++historyRequest;
   try {
-    const response = await fetch("/api/history", { cache: "no-store" });
+    const response = await authFetch("/api/history", { cache: "no-store" });
     if (!response.ok) throw new Error("History unavailable");
     const saved = await response.json();
     if (request !== historyRequest) return;
@@ -413,55 +416,62 @@ function configure(settings) {
 }
 
 // The SSE stream supplies both configuration and state, including after restart.
-const live = new EventSource("/api/events");
-live.addEventListener("config", (event) => {
-  try {
-    configure(JSON.parse(event.data));
-  } catch (error) {
-    console.error("Invalid configuration", error);
-  }
-});
-live.addEventListener("state", (event) => {
-  try {
-    receive(JSON.parse(event.data));
-  } catch (error) {
-    console.error("Invalid telemetry", error);
-  }
-});
-live.addEventListener("alarm", (event) => {
-  try {
-    addAlarmEvent(JSON.parse(event.data));
-  } catch (error) {
-    console.error("Invalid alarm event", error);
-  }
-});
-live.addEventListener("resync", () => loadHistory());
-live.onerror = () => {
-  if (session.connected) {
-    addEvent("Telemetry stream interrupted · reconnecting", "warning");
-    const stamp = new Date().toISOString();
-    history = mergeSamples(history, [
-      {
-        id: `stream-gap:${stamp}`,
-        observed_at: stamp,
-        sampled_at: stamp,
-        temperature_c: null,
-        quality: "offline",
-        simulated: simulation,
-      },
-    ]);
-    drawTrend();
-  }
-  lastOnline = false;
-  session.disconnect();
-  renderStatus();
-};
+const live = authState.user.projects.includes("meeting-room")
+  ? new EventSource("/api/events")
+  : null;
+if (live) {
+  live.addEventListener("auth-expired", expireAuthentication);
+  live.addEventListener("config", (event) => {
+    try {
+      configure(JSON.parse(event.data));
+    } catch (error) {
+      console.error("Invalid configuration", error);
+    }
+  });
+  live.addEventListener("state", (event) => {
+    try {
+      receive(JSON.parse(event.data));
+    } catch (error) {
+      console.error("Invalid telemetry", error);
+    }
+  });
+  live.addEventListener("alarm", (event) => {
+    try {
+      addAlarmEvent(JSON.parse(event.data));
+    } catch (error) {
+      console.error("Invalid alarm event", error);
+    }
+  });
+  live.addEventListener("resync", () => loadHistory());
+  live.onerror = () => {
+    if (session.connected) {
+      addEvent("Telemetry stream interrupted · reconnecting", "warning");
+      const stamp = new Date().toISOString();
+      history = mergeSamples(history, [
+        {
+          id: `stream-gap:${stamp}`,
+          observed_at: stamp,
+          sampled_at: stamp,
+          temperature_c: null,
+          quality: "offline",
+          simulated: simulation,
+        },
+      ]);
+      drawTrend();
+    }
+    lastOnline = false;
+    session.disconnect();
+    renderStatus();
+  };
+}
 document.addEventListener("visibilitychange", () => renderStatus());
 $("demoAlarmBtn").addEventListener("click", async () => {
   if (!simulation) return;
   $("demoAlarmBtn").disabled = true;
   try {
-    const response = await fetch("/api/demo/toggle-alarm", { method: "POST" });
+    const response = await authFetch("/api/demo/toggle-alarm", {
+      method: "POST",
+    });
     if (!response.ok) throw new Error("Failed");
   } catch {
     addEvent("Failed to toggle simulated alarm", "warning");
@@ -1406,7 +1416,9 @@ const viewerFullscreen = new ViewerFullscreen({
   ],
   onResize: () => buildingViewer?.resize(),
 });
+const usersPanel = new UsersPanel();
 function hideApplicationPages() {
+  usersPanel.close();
   for (const page of document.querySelectorAll(".application-page"))
     page.hidden = true;
 }
@@ -1436,6 +1448,13 @@ function showApplicationPage(page, params = {}) {
     "users-access": "navUsers",
   };
   markDestination(nav[page]);
+  if (page === "users-access" && !can("administration")) {
+    $("plannedPage").hidden = false;
+    $("plannedPageTitle").textContent = "Access denied";
+    $("plannedPageDescription").textContent =
+      "Administrator access is required for this area.";
+    return;
+  }
   const title = APPLICATION_PAGES[page];
   $("roomName").textContent = title;
   $("roomTrail").textContent = title;
@@ -1444,11 +1463,7 @@ function showApplicationPage(page, params = {}) {
     page === "maintenance"
       ? "Corrective reporting and manager review · Atrium building pilot"
       : "Your projects and building operations";
-  $("modeChip").textContent = [
-    "calendar",
-    "notifications",
-    "users-access",
-  ].includes(page)
+  $("modeChip").textContent = ["calendar", "notifications"].includes(page)
     ? "PLANNED"
     : "WORKSPACE";
   $("modeChip").classList.remove("simulated");
@@ -1456,7 +1471,10 @@ function showApplicationPage(page, params = {}) {
   $("connLabel").textContent = "LOCAL WORKSPACE";
   $("connState").className = "connection-status online";
   document.title = `aura — ${title}`;
-  if (page === "maintenance") {
+  if (page === "users-access") {
+    $("usersPage").hidden = false;
+    usersPanel.open();
+  } else if (page === "maintenance") {
     $("maintenancePage").hidden = false;
     maintenancePanel.open(params);
   } else if (page === "dashboard") {
@@ -1503,8 +1521,6 @@ function showApplicationPage(page, params = {}) {
         "Maintenance scheduling and calendar services are planned. No schedules or generated occurrences are running.",
       notifications:
         "The notification inbox and delivery services are planned. No notification feed is connected.",
-      "users-access":
-        "A future administrator portal will manage users and access. Authentication and access control are not implemented.",
     }[page];
   }
 }
@@ -1527,4 +1543,7 @@ $("openAssetMaintenance").onclick = () => {
 };
 $("maintenanceUsePilot").onclick = () =>
   library.navigate("maintenance", { project_id: "atrium-building" });
+$("navUsers").hidden = !can("administration");
+$("navMaintenance").hidden =
+  !authState.user.projects.includes("atrium-building");
 library.load();

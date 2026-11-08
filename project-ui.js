@@ -1,4 +1,5 @@
 /* Project metadata and navigation. Models share a workspace, never device bindings. */
+import { authFetch } from "./auth-ui.js";
 const $ = (id) => document.getElementById(id);
 export const APPLICATION_PAGES = {
   dashboard: "Dashboard",
@@ -35,7 +36,7 @@ export class ProjectLibrary {
   }
   async load() {
     try {
-      const response = await fetch("/api/projects", { cache: "no-store" });
+      const response = await authFetch("/api/projects", { cache: "no-store" });
       if (!response.ok) throw new Error("Project catalog unavailable");
       const catalog = await response.json();
       this.projects = catalog.projects;
@@ -92,10 +93,10 @@ export class ProjectLibrary {
     }
   }
   route() {
-    if (!this.projects.length) return;
     if (location.hash === "#projects") return this.show(false);
     const application = applicationRoute(location.hash);
     if (application) return this.onPage(application.page, application.params);
+    if (!this.projects.length) return this.show(false);
     let requested = null;
     if (location.hash.startsWith("#project/")) {
       try {

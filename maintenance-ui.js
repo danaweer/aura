@@ -1,4 +1,5 @@
 /* Local corrective reporting/triage only; no viewer state changes or telemetry. */
+import { authState, authFetch, can } from "./auth-ui.js";
 const PROJECT = "atrium-building";
 const $ = (id) => document.getElementById(id);
 export class MaintenancePanel {
@@ -24,17 +25,23 @@ export class MaintenancePanel {
       button.onclick = () => this.setTab(button.dataset.maintenanceTab);
     $("maintenanceWorkOrderSelect").onchange = () => this.renderOrder();
     $("maintenanceRefresh").onclick = () => this.refresh();
-    $("maintenanceRole").onchange = () => this.reviewVisibility();
+    this.draftKey = `aura-maintenance-report-draft:${authState.user.user_id}`;
+    $("maintenanceCurrentIdentity").textContent =
+      `${authState.user.name} · ${authState.user.role}`;
+    this.reportForm.elements.reporter.value = authState.user.name;
+    this.reportForm.elements.reporter.readOnly = true;
+    $("maintenanceReportCard").hidden = !can("submit_reports");
     $("maintenanceReportSelect").onchange = () =>
       this.loadReport($("maintenanceReportSelect").value);
     $("maintenanceUseSelection").onclick = () => this.useSelection();
     $("maintenanceNewDraft").onclick = () => {
       if (this.busy) return;
       this.reportForm.reset();
+      this.reportForm.elements.reporter.value = authState.user.name;
       this.requestKey = null;
       this.setObservedNow();
       try {
-        sessionStorage.removeItem("aura-maintenance-report-draft");
+        sessionStorage.removeItem(this.draftKey);
       } catch {
         /* optional storage */
       }
@@ -56,14 +63,12 @@ export class MaintenancePanel {
       this.emergencyVisibility();
     // Retain a submission key and its exact draft after a lost response/reload.
     try {
-      const saved = JSON.parse(
-        sessionStorage.getItem("aura-maintenance-report-draft"),
-      );
+      const saved = JSON.parse(sessionStorage.getItem(this.draftKey));
       if (saved?.request_key) {
         this.requestKey = saved.request_key;
         for (const [key, value] of Object.entries(saved)) {
           const input = this.reportForm.elements.namedItem(key);
-          if (input && key !== "room_id")
+          if (input && !["room_id", "reporter"].includes(key))
             input.type === "checkbox"
               ? (input.checked = value)
               : (input.value = value);
@@ -108,6 +113,7 @@ export class MaintenancePanel {
     this.root.hidden = !supported;
     $("maintenanceOverview").hidden = !supported;
     $("maintenanceReportAction").disabled = !supported;
+    $("maintenanceReportAction").hidden = !can("submit_reports");
     $("maintenanceUsePilot").hidden = supported;
     this.routeAssetId = params.asset_id || null;
     this.pendingContext = params;
@@ -283,14 +289,13 @@ export class MaintenancePanel {
       );
   }
   async api(path, body) {
-    const response = await fetch(`/api/maintenance/${path}`, {
+    const response = await authFetch(`/api/maintenance/${path}`, {
       cache: "no-store",
       ...(body
         ? {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
-              "X-AURA-Demo-Role": $("maintenanceRole").value,
             },
             body: JSON.stringify(body),
           }
@@ -452,7 +457,7 @@ export class MaintenancePanel {
     this.triageForm.hidden =
       !this.current ||
       this.current.status === "Linked" ||
-      $("maintenanceRole").value !== "manager";
+      !can("triage_reports");
     $("maintenanceExistingLabel").hidden =
       this.triageForm.elements.link_mode.value !== "existing";
     this.triageForm.elements.work_order_id.required =
@@ -496,13 +501,11 @@ export class MaintenancePanel {
     this.requestKey ||= crypto.randomUUID();
     draft.request_key = this.requestKey;
     try {
-      sessionStorage.setItem(
-        "aura-maintenance-report-draft",
-        JSON.stringify(draft),
-      );
+      sessionStorage.setItem(this.draftKey, JSON.stringify(draft));
     } catch {
       /* Retry key stays in memory. */
     }
+    delete draft.reporter;
     const payload = {
       ...draft,
       project_id: PROJECT,
@@ -514,11 +517,12 @@ export class MaintenancePanel {
       const data = await this.api("reports", payload);
       this.requestKey = null;
       try {
-        sessionStorage.removeItem("aura-maintenance-report-draft");
+        sessionStorage.removeItem(this.draftKey);
       } catch {
         /* optional storage */
       }
       this.reportForm.reset();
+      this.reportForm.elements.reporter.value = authState.user.name;
       this.setObservedNow();
       this.busy = false;
       await this.refresh();

@@ -21,6 +21,9 @@ from urllib.parse import urlsplit
 from device_reader import HEALTH_NAMES, read_latest
 from history import HistoryStore
 from maintenance_api import handle_maintenance
+from auth import AuthError
+from user_management_api import handle_user_management
+from auth_http import AuthSettings, authenticate, handle_auth, trusted_host, require_project, require_permission, cookie_token
 from projects import project_catalog
 
 HERE = Path(__file__).resolve().parent
@@ -278,15 +281,27 @@ class TelemetryHub:
             return self.alarm_demo
 
 
-def make_handler(hub):
+def make_handler(hub, auth_settings=None):
     class Handler(BaseHTTPRequestHandler):
         protocol_version = "HTTP/1.1"
+
+        def setup(self):
+            super().setup()
+            self.auth_store = hub.store.auth
+            self.auth_settings = auth_settings or AuthSettings()
+            self.pending_cookie = None
 
         def response_headers(self, status, mime, count=None, attachment=None):
             self.send_response(status)
             self.send_header("Content-Type", mime)
             self.send_header("Cache-Control", "no-cache, no-store, must-revalidate")
             self.send_header("X-Content-Type-Options", "nosniff")
+            self.send_header("X-Frame-Options", "DENY")
+            self.send_header("Content-Security-Policy", "frame-ancestors 'none'; base-uri 'self'; form-action 'self'")
+            self.send_header("Referrer-Policy", "same-origin")
+            if self.pending_cookie:
+                self.send_header("Set-Cookie", self.pending_cookie)
+                self.pending_cookie = None
             self.close_connection = mime != "text/event-stream"
             self.send_header("Connection", "close" if self.close_connection else "keep-alive")
             if attachment:
@@ -301,10 +316,27 @@ def make_handler(hub):
             self.wfile.write(raw)
 
         def do_GET(self):
+            try:
+                trusted_host(self)
+                if handle_auth(self):
+                    return
+                route = urlsplit(self.path).path
+                if route.startswith("/api/"):
+                    authenticate(self)
+                    if route in ("/api/state", "/api/history", "/api/history.csv", "/api/events"):
+                        require_project(self.auth_user, "meeting-room")
+            except AuthError as exc:
+                self.json_response(exc.status,{"error":str(exc)})
+                return
+            except sqlite3.Error:
+                self.json_response(503,{"error":"Authentication storage is unavailable"})
+                return
+            if handle_user_management(self, hub.room):
+                return
             if handle_maintenance(self, hub.store.maintenance):
                 return
             route = urlsplit(self.path).path
-            static = {"/": "index.html", "/index.html": "index.html", "/app.js": "app.js", "/maintenance-ui.js": "maintenance-ui.js", "/telemetry.js": "telemetry.js", "/style.css": "style.css", "/viewer-fullscreen.js": "viewer-fullscreen.js"}
+            static = {"/": "index.html", "/index.html": "index.html", "/app.js": "app.js", "/auth-ui.js": "auth-ui.js", "/users-ui.js": "users-ui.js", "/login": "index.html", "/maintenance-ui.js": "maintenance-ui.js", "/telemetry.js": "telemetry.js", "/style.css": "style.css", "/viewer-fullscreen.js": "viewer-fullscreen.js"}
             for filename in ("building-viewer.js", "projects/atrium-building/blueprint.js", "project-ui.js", "vendor/three.module.js", "vendor/three.core.js", "vendor/OrbitControls.js", "projects/meeting-room/model.js", "projects/atrium-building/model.js", "projects/atrium-building/layout.js", "projects/atrium-building/interiors.js", "projects/atrium-building/geometry.js", "projects/atrium-building/architecture.js", "projects/atrium-building/services.js", "projects/atrium-building/devices.js", "projects/atrium-building/device-plan.js", "projects/atrium-building/reference/device-positions-d02.pdf", "projects/atrium-building/visibility.js", "projects/atrium-building/stairs.js", "projects/atrium-building/egress.js", "projects/atrium-building/egress-plan.js", "projects/atrium-building/extinguishers.js", "projects/atrium-building/equipment.js", "projects/atrium-building/main-service-plan.js", "projects/atrium-building/main-services.js", "projects/atrium-building/reference/main-service-routes.pdf", "projects/atrium-building/equipment-plan.js", "projects/atrium-building/reference/equipment-placement-p01.pdf", "projects/atrium-building/washroom-plan.js", "projects/atrium-building/washrooms.js", "projects/atrium-building/washroom-plumbing.js", "projects/atrium-building/extinguisher-plan.js", "projects/atrium-building/reference/extinguishers-f01-p10.pdf", "projects/atrium-building/reference/extinguishers-f01-p11.pdf", "projects/atrium-building/reference/extinguishers-f01-p12.pdf", "projects/atrium-building/reference/extinguishers-f01-p13.pdf", "projects/atrium-building/reference/extinguishers-f01-p14.pdf", "projects/atrium-building/reference/means-of-egress-e01.pdf", "projects/meeting-room/preview.svg", "projects/atrium-building/preview.svg"):
                 static["/" + filename] = filename
             if route in static:
@@ -315,7 +347,11 @@ def make_handler(hub):
                 self.wfile.write(content)
                 return
             if route == "/api/projects":
-                self.json_response(200, project_catalog(hub.room))
+                catalog = project_catalog(hub.room)
+                catalog["projects"] = [p for p in catalog["projects"] if p["id"] in self.auth_user["projects"]]
+                if catalog["default_project"] not in self.auth_user["projects"]:
+                    catalog["default_project"] = catalog["projects"][0]["id"] if catalog["projects"] else None
+                self.json_response(200, catalog)
                 return
             if route == "/api/state":
                 version, data = hub.latest()
@@ -371,12 +407,20 @@ def make_handler(hub):
                 if initial and payload is not None:
                     self.sse("state", payload, payload["id"])
                 while not hub.stop.is_set():
+                    current = self.auth_store.session(cookie_token(self),self.auth_settings.idle_seconds,touch=False)
+                    if not current or not current["user"] or "meeting-room" not in current["user"]["projects"]:
+                        self.sse("auth-expired", {"reason":"Session expired or project access changed"})
+                        break
                     with hub.condition:
                         if hub.version <= last:
                             hub.condition.wait(timeout=12)
                         version, payload = hub.latest()
                         events = [(v, e) for v, e in hub.events if last < v <= version]
                         missed = last < hub.evicted_event_version
+                    current = self.auth_store.session(cookie_token(self),self.auth_settings.idle_seconds,touch=False)
+                    if not current or not current["user"] or "meeting-room" not in current["user"]["projects"]:
+                        self.sse("auth-expired", {"reason":"Session expired or project access changed"})
+                        break
                     if payload is not None and version > last:
                         if missed:
                             self.sse("resync", {"reason": "Reload retained history to fill the event gap"})
@@ -387,7 +431,7 @@ def make_handler(hub):
                         self.wfile.write(b": keepalive\n\n")
                         self.wfile.flush()
                     last = version
-            except (BrokenPipeError, ConnectionResetError, OSError):
+            except (BrokenPipeError, ConnectionResetError, OSError, sqlite3.Error):
                 pass
             finally:
                 self.close_connection = True
@@ -399,6 +443,21 @@ def make_handler(hub):
             self.wfile.flush()
 
         def do_POST(self):
+            if handle_auth(self):
+                return
+            try:
+                authenticate(self, write=True)
+                if urlsplit(self.path).path == "/api/demo/toggle-alarm":
+                    require_project(self.auth_user,"meeting-room")
+                    require_permission(self.auth_user,"system_operations")
+            except AuthError as exc:
+                self.json_response(exc.status,{"error":str(exc)})
+                return
+            except sqlite3.Error:
+                self.json_response(503,{"error":"Authentication storage is unavailable"})
+                return
+            if handle_user_management(self, hub.room):
+                return
             if handle_maintenance(self, hub.store.maintenance):
                 return
             if urlsplit(self.path).path != "/api/demo/toggle-alarm":
@@ -426,6 +485,10 @@ def parse_args(argv=None):
     parser.add_argument("--history-db", default=str(HERE / "data" / "aura.sqlite3"))
     parser.add_argument("--room-config", type=Path, help="Optional room JSON file; see room.example.json")
     parser.add_argument("--demo", action="store_true", help="SIMULATED data, no MXCHIP required")
+    parser.add_argument("--public-origin", help="Exact browser origin, e.g. https://aura.example; proxy headers are not trusted")
+    parser.add_argument("--secure-cookies", action="store_true", help="Require HTTPS cookies (also automatic for an HTTPS public origin)")
+    parser.add_argument("--session-hours", type=int, default=8)
+    parser.add_argument("--session-idle-minutes", type=int, default=30)
     args = parser.parse_args(argv)
     if not (0 <= args.unit <= 255 and 1 <= args.device_port <= 65535 and 1 <= args.web_port <= 65535):
         parser.error("Unit must be 0–255 and ports must be 1–65535")
@@ -437,6 +500,10 @@ def parse_args(argv=None):
         parser.error("Stale deadline must be at least max(1, 2 × interval) and at most 3600 seconds")
     if not args.device.strip():
         parser.error("Device host cannot be empty")
+    try:
+        AuthSettings(args.public_origin,args.secure_cookies,args.session_hours*3600,args.session_idle_minutes*60)
+    except ValueError as exc:
+        parser.error(str(exc))
     return args
 
 
@@ -450,7 +517,8 @@ def main():
         raise SystemExit(f"Could not load room configuration or local history: {exc}") from exc
     hub = TelemetryHub(args.device, args.device_port, args.unit, args.interval, args.timeout, args.demo, store, args.stale_after, room)
     try:
-        server = ThreadingHTTPServer(("127.0.0.1", args.web_port), make_handler(hub))
+        server = ThreadingHTTPServer(("127.0.0.1", args.web_port), make_handler(hub,
+            AuthSettings(args.public_origin,args.secure_cookies,args.session_hours*3600,args.session_idle_minutes*60)))
     except OSError:
         store.close()
         raise

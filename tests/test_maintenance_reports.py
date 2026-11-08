@@ -9,6 +9,7 @@ from unittest.mock import patch
 from http.server import ThreadingHTTPServer
 
 from history import HistoryStore
+from tests.test_auth import Client, PASSWORD
 from maintenance import AssetNotFoundError, ConflictError, MIGRATIONS, ASSET_FIELDS, load_asset_catalog
 from server import TelemetryHub, make_handler
 
@@ -117,18 +118,22 @@ class ReportApiTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.hub=TelemetryHub("fixture",502,1,1,1,True)
+        admin=cls.hub.store.auth.bootstrap_admin("report-admin","Administrator",PASSWORD)
+        for role in ("employee","manager"):
+            cls.hub.store.auth.create_user(admin["user_id"],role,role.title(),PASSWORD,role,[PROJECT,"meeting-room"])
         cls.server=ThreadingHTTPServer(("127.0.0.1",0),make_handler(cls.hub))
         cls.thread=threading.Thread(target=cls.server.serve_forever,daemon=True); cls.thread.start()
+        cls.clients={}
+        for role in ("employee","manager"):
+            cls.clients[role]=Client(cls.server)
+            assert cls.clients[role].login(role)[0] == 200
     @classmethod
     def tearDownClass(cls):
         cls.server.shutdown(); cls.server.server_close(); cls.thread.join(2); cls.hub.store.close()
     def call(self,path,body=None,role="employee"):
-        connection=http.client.HTTPConnection("127.0.0.1",self.server.server_address[1],timeout=3)
-        try:
-            connection.request("POST" if body is not None else "GET",path,body=json.dumps(body) if body is not None else None,
-                headers={"Content-Type":"application/json","X-AURA-Demo-Role":role})
-            response=connection.getresponse(); return response.status,json.loads(response.read())
-        finally: connection.close()
+        if body is not None:
+            body={key:value for key,value in body.items() if key!="reporter"}
+        return self.clients[role].call(path,body)
     def test_api_role_validation_conflicts_and_persisted_lookup(self):
         status,overview=self.call("/api/maintenance/overview?project_id=atrium-building")
         self.assertEqual(status,200); self.assertGreater(len(overview["rooms"]),0)

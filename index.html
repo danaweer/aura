@@ -11,7 +11,84 @@
     </script>
   </head>
   <body>
-    <div class="shell">
+    <main id="loginScreen" class="login-screen" hidden>
+      <section class="login-card" aria-labelledby="loginTitle">
+        <p class="eyebrow">AURA · BUILDING MANAGEMENT</p>
+        <h1 id="loginTitle">Welcome back.</h1>
+        <p>Sign in to your digital twin workspace.</p>
+        <form id="loginForm">
+          <label
+            >Username<input
+              name="username"
+              autocomplete="username"
+              required
+              maxlength="128"
+          /></label>
+          <label
+            >Password<input
+              name="password"
+              type="password"
+              autocomplete="current-password"
+              required
+              maxlength="128"
+          /></label>
+          <button class="maintenance-primary" type="submit">Sign in</button>
+        </form>
+        <p id="loginMessage" role="status" aria-live="polite"></p>
+        <p id="loginBootstrap" hidden>
+          No accounts are provisioned yet. Run
+          <code>.venv/bin/python auth_setup.py bootstrap-admin</code> locally to
+          create the first administrator.
+        </p>
+      </section>
+    </main>
+    <main id="passwordSetupScreen" class="login-screen" hidden>
+      <section class="login-card" aria-labelledby="passwordSetupTitle">
+        <p class="eyebrow">AURA · ACCOUNT SETUP</p>
+        <h1 id="passwordSetupTitle">Set your password.</h1>
+        <p>You must replace your temporary password before entering AURA.</p>
+        <form id="passwordSetupForm">
+          <label
+            >Current temporary password<input
+              name="current_password"
+              type="password"
+              autocomplete="current-password"
+              required
+              maxlength="128"
+          /></label>
+          <label
+            >New password<input
+              name="new_password"
+              type="password"
+              autocomplete="new-password"
+              required
+              minlength="15"
+              maxlength="128"
+          /></label>
+          <label
+            >Confirm new password<input
+              name="confirmation"
+              type="password"
+              autocomplete="new-password"
+              required
+              minlength="15"
+              maxlength="128"
+          /></label>
+          <button class="maintenance-primary" type="submit">
+            Set password and return to sign in
+          </button>
+          <button
+            id="passwordSetupLogout"
+            class="projects-button"
+            type="button"
+          >
+            Cancel and sign out
+          </button>
+        </form>
+        <p id="passwordSetupMessage" role="status" aria-live="polite"></p>
+      </section>
+    </main>
+    <div id="applicationShell" class="shell" hidden>
       <header class="topbar">
         <div class="identity">
           <div class="brand-symbol" aria-hidden="true">
@@ -37,6 +114,13 @@
           </div>
         </div>
         <div class="top-actions">
+          <div class="account-identity">
+            <strong id="accountName"></strong><small id="accountRole"></small>
+          </div>
+          <button id="logoutButton" class="projects-button" type="button">
+            Logout
+          </button>
+          <span id="accountStatus" role="status"></span>
           <span
             class="connection-status"
             id="connState"
@@ -227,7 +311,7 @@
             class="nav-item"
             type="button"
             aria-label="Users & Access"
-            title="Users & Access — planned"
+            title="Users & Access — administrator accounts and project grants"
             data-app-page="users-access"
           >
             <svg
@@ -334,6 +418,156 @@
             </div>
           </section>
           <section
+            id="usersPage"
+            class="application-page users-page"
+            hidden
+            aria-labelledby="usersTitle"
+          >
+            <header class="users-header">
+              <div>
+                <p class="eyebrow">ADMINISTRATION</p>
+                <h1 id="usersTitle">Users &amp; Access</h1>
+                <p>
+                  Manage accounts, roles and access to existing AURA projects.
+                </p>
+              </div>
+              <button id="usersRefresh" class="projects-button" type="button">
+                Refresh users
+              </button>
+            </header>
+            <p id="usersMessage" role="status" aria-live="polite"></p>
+            <section
+              id="usersCredential"
+              class="users-credential"
+              hidden
+              aria-labelledby="usersCredentialTitle"
+            >
+              <h2 id="usersCredentialTitle">Temporary password — shown once</h2>
+              <p id="usersCredentialContext"></p>
+              <p>
+                Share privately through a trusted channel. The user must choose
+                a new password at first login. This password is not saved in
+                your browser.
+              </p>
+              <div class="users-secret-row">
+                <input
+                  id="usersTemporaryPassword"
+                  aria-label="Temporary password"
+                  type="password"
+                  readonly
+                  autocomplete="off"
+                  spellcheck="false"
+                /><button
+                  id="usersRevealPassword"
+                  class="projects-button"
+                  type="button"
+                >
+                  Show</button
+                ><button
+                  id="usersDismissPassword"
+                  class="projects-button"
+                  type="button"
+                >
+                  Done — clear password
+                </button>
+              </div>
+            </section>
+            <div class="users-layout">
+              <section
+                class="users-card users-directory"
+                aria-labelledby="usersDirectoryTitle"
+              >
+                <h2 id="usersDirectoryTitle">User directory</h2>
+                <p>
+                  Permission changes invalidate the affected user’s sessions.
+                  Accounts are disabled rather than deleted.
+                </p>
+                <div
+                  class="users-table-scroll"
+                  tabindex="0"
+                  role="region"
+                  aria-label="User directory table"
+                >
+                  <table class="users-table">
+                    <thead>
+                      <tr>
+                        <th scope="col">User</th>
+                        <th scope="col">Role</th>
+                        <th scope="col">Status</th>
+                        <th scope="col">Projects</th>
+                        <th scope="col">Action</th>
+                      </tr>
+                    </thead>
+                    <tbody id="usersTableBody"></tbody>
+                  </table>
+                </div>
+              </section>
+              <section class="users-card" aria-labelledby="usersFormTitle">
+                <h2 id="usersFormTitle">Create user</h2>
+                <p id="usersFormContext">
+                  A temporary password is generated securely after creation.
+                </p>
+                <form id="usersForm" class="users-form">
+                  <div id="usersNewFields">
+                    <label
+                      >Display name<input
+                        name="name"
+                        required
+                        maxlength="200"
+                        autocomplete="off" /></label
+                    ><label
+                      >Username<input
+                        name="username"
+                        required
+                        minlength="3"
+                        maxlength="128"
+                        pattern="[a-zA-Z0-9@._+\-]{3,128}"
+                        autocomplete="off"
+                    /></label>
+                  </div>
+                  <label>Role<select name="role" required></select></label>
+                  <label id="usersStatusLabel" hidden
+                    >Account status<select name="status">
+                      <option value="active">Active</option>
+                      <option value="disabled">Disabled</option>
+                    </select></label
+                  >
+                  <fieldset>
+                    <legend>Project access</legend>
+                    <div id="usersProjectChoices"></div>
+                    <small
+                      >Only checked projects are permitted. No projects means no
+                      project data access.</small
+                    >
+                  </fieldset>
+                  <div class="users-form-actions">
+                    <button
+                      id="usersSave"
+                      class="maintenance-primary"
+                      type="submit"
+                    >
+                      Create user</button
+                    ><button
+                      id="usersNew"
+                      class="projects-button"
+                      type="button"
+                      hidden
+                    >
+                      New user</button
+                    ><button
+                      id="usersResetPassword"
+                      class="projects-button"
+                      type="button"
+                      hidden
+                    >
+                      Reset password
+                    </button>
+                  </div>
+                </form>
+              </section>
+            </div>
+          </section>
+          <section
             id="plannedPage"
             class="application-page planned-screen"
             hidden
@@ -421,14 +655,11 @@
             <section id="maintenancePanel" class="maintenance-panel">
               <div class="maintenance-toolbar">
                 <div class="maintenance-role-control">
-                  <label for="maintenanceRole">Demo role</label
-                  ><select id="maintenanceRole">
-                    <option value="employee">Employee</option>
-                    <option value="manager">Manager</option>
-                  </select>
+                  <span>Signed in as</span
+                  ><strong id="maintenanceCurrentIdentity"></strong>
                 </div>
                 <p class="maintenance-caption">
-                  Local workflow preview · Demo role is not authentication.
+                  Access is based on your account and authorized projects.
                 </p>
                 <button
                   id="maintenanceRefresh"
@@ -485,7 +716,7 @@
                 aria-label="Maintenance reports"
               >
                 <div class="maintenance-report-layout">
-                  <section class="maintenance-card">
+                  <section id="maintenanceReportCard" class="maintenance-card">
                     <header class="maintenance-card-heading">
                       <div>
                         <h3>Report a problem</h3>
@@ -1613,6 +1844,6 @@
       </p>
       <button type="button" id="closeHelp">Got it</button>
     </dialog>
-    <script src="/app.js" type="module"></script>
+    <script src="/auth-ui.js" type="module"></script>
   </body>
 </html>

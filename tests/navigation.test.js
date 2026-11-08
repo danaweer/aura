@@ -1,6 +1,10 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { applicationRoute, APPLICATION_PAGES } from "../project-ui.js";
+import {
+  applicationRoute,
+  APPLICATION_PAGES,
+  ProjectLibrary,
+} from "../project-ui.js";
 
 test("application routes preserve canonical project/asset/room IDs and maintenance section", () => {
   assert.deepEqual(
@@ -26,4 +30,25 @@ test("application routes preserve canonical project/asset/room IDs and maintenan
   assert.equal(applicationRoute("#project/atrium-building"), null);
   assert.equal(applicationRoute("#projects"), null);
   assert.equal(applicationRoute("#not-a-page"), null);
+});
+
+test("account pages remain navigable without project grants", () => {
+  const previous = globalThis.location;
+  const calls = [];
+  const library = {
+    projects: [],
+    onPage: (page) => calls.push(page),
+    show: () => calls.push("projects"),
+  };
+  try {
+    globalThis.location = { hash: "#users-access" };
+    ProjectLibrary.prototype.route.call(library);
+    assert.deepEqual(calls, ["users-access"]);
+    globalThis.location.hash = "#project/atrium-building";
+    ProjectLibrary.prototype.route.call(library);
+    assert.deepEqual(calls, ["users-access", "projects"]);
+  } finally {
+    if (previous === undefined) delete globalThis.location;
+    else globalThis.location = previous;
+  }
 });

@@ -12,6 +12,7 @@ from unittest.mock import patch
 
 import device_reader
 from history import HistoryStore
+from tests.test_auth import Client, PASSWORD
 from projects import project_catalog
 from server import TelemetryHub, load_room, make_handler, parse_args
 from http.server import ThreadingHTTPServer
@@ -236,11 +237,14 @@ class HttpTests(unittest.TestCase):
     def setUpClass(cls):
         cls.hub = TelemetryHub('fixture', 502, 1, 1, 1, True)
         cls.hub.process_reading(cls.hub.demo_read())
+        cls.hub.store.auth.bootstrap_admin('http-admin','HTTP administrator',PASSWORD)
         cls.server = ThreadingHTTPServer(('127.0.0.1', 0), make_handler(cls.hub))
         cls.server.daemon_threads = True
         cls.port = cls.server.server_address[1]
         cls.thread = threading.Thread(target=cls.server.serve_forever, daemon=True)
         cls.thread.start()
+        cls.auth_client = Client(cls.server)
+        assert cls.auth_client.login('http-admin')[0] == 200
 
     @classmethod
     def tearDownClass(cls):
@@ -254,7 +258,7 @@ class HttpTests(unittest.TestCase):
 
     def request(self, method, path):
         connection = http.client.HTTPConnection('127.0.0.1', self.port, timeout=3)
-        connection.request(method, path)
+        connection.request(method, path, headers={"Cookie":self.auth_client.cookie,"Origin":self.auth_client.origin,"X-CSRF-Token":self.auth_client.csrf})
         response = connection.getresponse()
         body = response.read()
         status, headers = response.status, dict(response.getheaders())
@@ -263,7 +267,8 @@ class HttpTests(unittest.TestCase):
 
     def stream(self, cursor=None, through='state'):
         connection = http.client.HTTPConnection('127.0.0.1', self.port, timeout=3)
-        headers = {'Last-Event-ID':cursor} if cursor else {}
+        headers = {'Cookie':self.auth_client.cookie}
+        if cursor: headers['Last-Event-ID'] = cursor
         connection.request('GET', '/api/events', headers=headers)
         response = connection.getresponse()
         packets, packet = [], {}

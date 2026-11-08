@@ -5,6 +5,7 @@ import sqlite3
 import threading
 from pathlib import Path
 from maintenance import MaintenanceStore
+from auth import AuthStore
 
 
 class HistoryStore:
@@ -12,6 +13,8 @@ class HistoryStore:
         if str(path) != ":memory:":
             Path(path).parent.mkdir(parents=True, exist_ok=True)
         self.connection = sqlite3.connect(str(path), check_same_thread=False)
+        if str(path) != ":memory:":
+            Path(path).chmod(0o600)
         self.lock = threading.Lock()
         self.retention = retention
         with self.connection:
@@ -36,6 +39,7 @@ class HistoryStore:
 
         try:
             self.maintenance = MaintenanceStore(self.connection, self.lock)
+            self.auth = AuthStore(self.connection, self.lock)
         except Exception:
             self.connection.close()
             raise

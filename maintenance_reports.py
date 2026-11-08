@@ -67,7 +67,7 @@ class ReportStore:
             raise AssetNotFoundError("Asset mapping error: this task supports registered AHU-L1-01 only")
 
     def submit(self, project_id, room_id, reporter, symptom, observed_at, impact,
-               description, request_key, asset_id=None, potential_hazard=False):
+               description, request_key, asset_id=None, potential_hazard=False, owner_user_id=None):
         for field,value,limit in [("project_id",project_id,200),("room_id",room_id,200),
                                   ("reporter",reporter,200),("symptom",symptom,500),
                                   ("impact",impact,1000),("description",description,10000),
@@ -86,7 +86,9 @@ class ReportStore:
         if observed > datetime.now(timezone.utc) + timedelta(minutes=5):
             raise ValueError("Observed time cannot be in the future")
         observed_at = observed.isoformat().replace("+00:00","Z")
-        fingerprint = hashlib.sha256(json.dumps([room_id,reporter,symptom,observed_at,impact,description,asset_id,potential_hazard]).encode()).hexdigest()
+        fingerprint_fields = [room_id,reporter,symptom,observed_at,impact,description,asset_id,potential_hazard]
+        if owner_user_id is not None: fingerprint_fields.append(owner_user_id)
+        fingerprint = hashlib.sha256(json.dumps(fingerprint_fields).encode()).hexdigest()
         s = self.store
         with s._write():
             old = s._one("SELECT * FROM maintenance_reports WHERE project_id=? AND request_key=?",(project_id,request_key))
@@ -101,15 +103,15 @@ class ReportStore:
             report_id,at = str(uuid.uuid4()),_now()
             s.connection.execute("""INSERT INTO maintenance_reports
                 (project_id,report_id,reporter,room_id,reported_asset_id,asset_id,symptom,observed_at,impact,
-                 description,potential_hazard,created_at,updated_at,request_key,request_hash)
-                VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""", (project_id,report_id,reporter,room_id,asset_id,asset_id,
-                symptom,observed_at,impact,description,int(potential_hazard),at,at,request_key,fingerprint))
+                 description,potential_hazard,created_at,updated_at,request_key,request_hash,owner_user_id)
+                VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""", (project_id,report_id,reporter,room_id,asset_id,asset_id,
+                symptom,observed_at,impact,description,int(potential_hazard),at,at,request_key,fingerprint,owner_user_id))
             report = self._get(project_id,report_id)
-            self._event(report,reporter,"submitted",None,"Reported observation")
+            self._event(report,owner_user_id or reporter,"submitted",None,"Reported observation")
             return report
 
     def triage(self, project_id, report_id, expected_version, priority, reason, *,
-               asset_id=None, link_mode="review", work_order_id=None, expected_work_order_version=None):
+               asset_id=None, link_mode="review", work_order_id=None, expected_work_order_version=None, actor="local-manager"):
         _text(reason,"Review reason",3000)
         if priority not in PRIORITIES or link_mode not in ("review","new","existing"):
             raise ValueError("Invalid priority or linking action")
@@ -132,7 +134,7 @@ class ReportStore:
             linked = None
             if link_mode == "new":
                 linked = s._insert_work_order(project_id,asset_id,before["symptom"],
-                    before["description"],priority,"local-manager",None,None,origin="problem-report",state="Triaged")
+                    before["description"],priority,actor,None,None,origin="problem-report",state="Triaged")
             elif link_mode == "existing":
                 linked = s._checked_order(project_id,work_order_id,expected_work_order_version)
                 if linked["asset_id"] != asset_id or linked["state"] in ("Completed","Verified/Closed","Cancelled"):
@@ -141,15 +143,15 @@ class ReportStore:
                     WHERE project_id=? AND work_order_id=? AND version=?""",(priority,
                     "Triaged" if linked["state"] == "New" else linked["state"],at,project_id,work_order_id,expected_work_order_version))
                 after_order = s._get_order(project_id,work_order_id)
-                s._audit(project_id,work_order_id,"local-manager","report_linked",linked,
+                s._audit(project_id,work_order_id,actor,"report_linked",linked,
                          {"work_order":after_order,"report_id":report_id,"reason":reason},at)
                 linked = after_order
             elif work_order_id is not None or expected_work_order_version is not None:
                 raise ValueError("Work-order reference requires the existing-work-order action")
             s.connection.execute("""UPDATE maintenance_reports SET asset_id=?,priority=?,triage_reason=?,
-                reviewed_by='local-manager',reviewed_at=?,work_order_id=?,status=?,updated_at=?,version=version+1
-                WHERE project_id=? AND report_id=? AND version=?""",(asset_id,priority,reason,at,
+                reviewed_by=?,reviewed_at=?,work_order_id=?,status=?,updated_at=?,version=version+1
+                WHERE project_id=? AND report_id=? AND version=?""",(asset_id,priority,reason,actor,at,
                 linked["work_order_id"] if linked else None,"Linked" if linked else "Reviewed",at,project_id,report_id,expected_version))
             report = self._get(project_id,report_id)
-            self._event(report,"local-manager","linked" if linked else "reviewed",before,reason)
+            self._event(report,actor,"linked" if linked else "reviewed",before,reason)
             return report
