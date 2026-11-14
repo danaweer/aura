@@ -47,6 +47,8 @@ export class WorkOrderPanel {
       </form>
       <label class="task-note-label">Work note (required for waiting, resume, records and completion)<textarea class="task-note" maxlength="10000"></textarea></label>
       <details class="task-record-summary"><summary>Saved work record</summary><div></div></details>
+      <form class="task-review" hidden><h3>Manager verification</h3><p>Review the saved work and post-work checks before deciding.</p><label>Review note<textarea name="note" required maxlength="10000"></textarea></label><div class="task-toolbar"><button type="submit" value="verify">Verify &amp; close</button><button type="submit" value="return_rework">Return for rework</button></div></form>
+      <p class="task-review-result" hidden></p>
       <details class="task-history" open><summary>Timestamped task history</summary><div></div></details>`;
     this.q = (selector) => this.root.querySelector(selector);
     this.root.insertBefore(this.q(".task-note-label"), this.q(".task-actions"));
@@ -76,6 +78,13 @@ export class WorkOrderPanel {
       values.post_work_result ||= null;
       this.act(event.submitter?.value || "record", values);
     };
+    this.q(".task-review").onsubmit = (event) => {
+      event.preventDefault();
+      if (!event.submitter) return;
+      this.act(event.submitter.value, {
+        note: event.currentTarget.elements.note.value,
+      });
+    };
   }
   close() {
     this.generation++;
@@ -101,6 +110,9 @@ export class WorkOrderPanel {
     this.q('[data-command="locate"]').disabled = true;
     this.q(".task-assignment").reset();
     this.q(".task-work").reset();
+    this.q(".task-review").reset();
+    this.q(".task-review").hidden = true;
+    this.q(".task-review-result").hidden = true;
     try {
       const data = await api(
         `work-orders/${order.work_order_id}?project_id=${encodeURIComponent(order.project_id)}`,
@@ -124,7 +136,7 @@ export class WorkOrderPanel {
       this.q(".task-meta").textContent =
         `${w.work_order_id} · ${w.asset_id} · ${data.asset.name} · Floor ${data.asset.floor}, room ${data.asset.room_id} · ${w.priority} priority`;
       this.q(".task-status").textContent =
-        `${taskStatus(w)} · Assigned ${stamp(w.assigned_at)} · Due ${w.due_at ? stamp(w.due_at) : "Not set"}${w.acknowledged_at ? ` · Acknowledged ${stamp(w.acknowledged_at)}` : ""}`;
+        `${taskStatus(w)} · Assigned ${stamp(w.assigned_at)} · Due ${w.due_at ? stamp(w.due_at) : "Not set"}${w.acknowledged_at ? ` · Acknowledged ${stamp(w.acknowledged_at)}` : ""}${w.closed_at ? ` · Closed ${stamp(w.closed_at)}` : ""}`;
       this.root.dataset.state = w.state;
       this.q(".task-description").textContent = w.description;
       this.q(".task-asset-state").textContent =
@@ -177,6 +189,29 @@ export class WorkOrderPanel {
       this.q(".task-note-label").hidden =
         !tech ||
         ["Completed", "Verified/Closed", "Cancelled"].includes(w.state);
+      const completion = [...data.events]
+        .reverse()
+        .find((event) => event.action === "complete");
+      this.q(".task-review").hidden =
+        !can("triage_reports") ||
+        w.state !== "Completed" ||
+        w.assignee_id === authState.user.user_id ||
+        completion?.actor === authState.user.user_id;
+      const reviewLabels = {
+        verify: "Verified & closed",
+        return_rework: "Returned for rework",
+      };
+      const review = [...data.events]
+        .reverse()
+        .find((event) => Object.hasOwn(reviewLabels, event.action));
+      this.q(".task-review-result").hidden = !review;
+      this.q(".task-review-result").textContent = review
+        ? `${reviewLabels[review.action]} · ${stamp(review.at)} · ${review.actor_name || review.actor} · ${review.after.note}`
+        : "";
+      this.q(".task-record-summary").open = [
+        "Completed",
+        "Verified/Closed",
+      ].includes(w.state);
       const saved = this.q(".task-record-summary div");
       saved.replaceChildren();
       for (const [name, label] of Object.entries({
@@ -197,7 +232,7 @@ export class WorkOrderPanel {
       history.replaceChildren();
       for (const event of data.events) {
         const p = document.createElement("p");
-        p.textContent = `${stamp(event.at)} · ${event.actor_name || event.actor} (${event.actor}) · ${event.action}${event.after.note || event.after.body ? ` · ${event.after.note || event.after.body}` : ""}`;
+        p.textContent = `${stamp(event.at)} · ${event.actor_name || event.actor} (${event.actor}) · ${reviewLabels[event.action] || event.action}${event.after.note || event.after.body ? ` · ${event.after.note || event.after.body}` : ""}`;
         history.append(p);
         if (["record", "complete"].includes(event.action)) {
           const details = document.createElement("details"),
@@ -234,6 +269,7 @@ export class WorkOrderPanel {
         ".task-actions",
         ".task-work",
         ".task-note-label",
+        ".task-review",
       ])
         this.q(selector).hidden = true;
     }

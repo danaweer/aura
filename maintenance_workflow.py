@@ -1,4 +1,4 @@
-"""Assigned corrective work only. Completion is not verification or closure."""
+"""Assigned corrective work with independent manager review after completion."""
 import json
 import time
 import uuid
@@ -10,6 +10,7 @@ from maintenance import ConflictError, WorkOrderNotFoundError, _now, _text
 WORK_FIELDS=("findings","cause_status","diagnosis","repair_action","materials_used",
              "work_duration_minutes","post_work_checks","post_work_result")
 TECH_ACTIONS=("acknowledge","start","wait_parts","wait_access","resume","record","complete")
+REVIEW_ACTIONS=("verify","return_rework")
 
 
 class WorkOrderWorkflow:
@@ -64,18 +65,28 @@ class WorkOrderWorkflow:
     def action(self, actor_id, project, order_id, expected_version, action, note="", token=None, **fields):
         _text(project,"project_id")
         _text(note,"work note",10000,empty=True)
-        if action!="assign" and action not in TECH_ACTIONS: raise ValueError("Unsupported work-order action; verification and closure are not permitted here")
+        if action!="assign" and action not in TECH_ACTIONS+REVIEW_ACTIONS: raise ValueError("Unsupported work-order action")
         allowed={"assignee_id","due_at"} if action=="assign" else set(WORK_FIELDS) if action in ("record","complete") else set()
         if set(fields)-allowed: raise ValueError("Unexpected action fields")
         with self.s._write():
-            roles=("manager","administrator") if action=="assign" else ("technician",)
+            roles=("manager","administrator") if action=="assign" or action in REVIEW_ACTIONS else ("technician",)
             self._actor(actor_id,project,roles,token)
             # Check assignment before version to avoid leaking another technician's task state.
             found=self.s._get_order(project,order_id)
-            if not found or (action!="assign" and found["assignee_id"]!=actor_id): raise WorkOrderNotFoundError("Task not found")
+            if not found or (action in TECH_ACTIONS and found["assignee_id"]!=actor_id): raise WorkOrderNotFoundError("Task not found")
             before=self.s._checked_order(project,order_id,expected_version)
             changes={};at=_now();state=before["state"]
-            if action=="assign":
+            if action in REVIEW_ACTIONS:
+                if state!="Completed": raise ConflictError("Only completed work awaiting verification can be reviewed")
+                _text(note,"review note",10000)
+                completion=self.s._one("""SELECT actor FROM maintenance_audit_events
+                    WHERE project_id=? AND work_order_id=? AND action='complete'
+                    ORDER BY at DESC,event_id DESC LIMIT 1""",(project,order_id))
+                if actor_id==before["assignee_id"] or (completion and completion["actor"]==actor_id):
+                    raise AuthError(403,"Independent review required; you cannot review your own repair")
+                if action=="verify": changes.update(state="Verified/Closed",closed_at=at)
+                else: changes.update(state="In progress",completed_at=None,closed_at=None)
+            elif action=="assign":
                 if state not in ("Triaged","Assigned"): raise ConflictError("Only triaged or not-yet-started assigned work can be assigned")
                 _text(note,"assignment reason",10000)
                 target=fields.get("assignee_id")

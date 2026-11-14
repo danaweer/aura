@@ -208,15 +208,136 @@ try {
     "Completed — awaiting verification",
   );
   await expect(manager.locator(".task-assignment")).toBeHidden();
+  await expect(tech.locator(".task-review")).toBeHidden();
+  const review = manager.locator(".task-review");
+  await expect(review).toBeVisible();
+  await expect(manager.locator(".task-record-summary")).toHaveAttribute(
+    "open",
+    "",
+  );
+  await expect(manager.locator(".task-record-summary")).toContainText(
+    "Inspected and secured connections per test procedure",
+  );
+  // Keep a second manager tab stale while the first returns the job for rework.
+  const stale = await manager.context().newPage();
+  stale.on("pageerror", (error) => errors.push(error.message));
+  await stale.goto(
+    `${url}/#maintenance?project_id=atrium-building&section=work-orders`,
+  );
+  await expect(
+    stale.locator(`#maintenanceWorkOrderSelect option[value="${orderId}"]`),
+  ).toHaveCount(1);
+  await stale.locator("#maintenanceWorkOrderSelect").selectOption(orderId);
+  await expect(stale.locator(".task-review")).toBeVisible();
+  await review
+    .locator('[name="note"]')
+    .fill("Repeat the post-work check under load");
+  await review.locator('button[value="return_rework"]').click();
+  await expect(manager.locator(".task-detail")).toHaveAttribute(
+    "data-state",
+    "In progress",
+  );
+  await expect(review).toBeHidden();
+  await expect(manager.locator(".task-review-result")).toContainText(
+    "Returned for rework",
+  );
+  await stale.locator('.task-review [name="note"]').fill("Stale close attempt");
+  await stale.locator('.task-review button[value="verify"]').click();
+  await expect(stale.locator(".task-message")).toContainText(
+    "Stale work-order version",
+  );
+  await expect(stale.locator('.task-review [name="note"]')).toHaveValue(
+    "Stale close attempt",
+  );
+  await tech.reload();
+  await expect(tech.locator(".task-work")).toBeVisible();
+  await expect(tech.locator(".task-detail")).toHaveAttribute(
+    "data-state",
+    "In progress",
+  );
+  await expect(tech.locator(".task-review")).toBeHidden();
+  await expect(tech.locator(".task-review-result")).toContainText(
+    "Test manager",
+  );
+  await expect(tech.locator('.task-work [name="repair_action"]')).toHaveValue(
+    "Inspected and secured connections per test procedure",
+  );
+  await tech
+    .locator('.task-work [name="repair_action"]')
+    .fill("Adjusted connection and repeated inspection after review");
+  await tech
+    .locator('.task-work [name="post_work_checks"]')
+    .fill(
+      "Test fixture: repeated post-work checks under load were satisfactory",
+    );
+  await tech.locator('.task-work [name="work_duration_minutes"]').fill("40");
+  await tech
+    .locator(".task-note")
+    .fill("Rework completed and new checks recorded");
+  await tech.locator('.task-work button[value="complete"]').click();
+  await expect(tech.locator(".task-status")).toContainText(
+    "Completed — awaiting verification",
+  );
+  await manager.locator("#maintenanceRefresh").click();
+  await expect(review).toBeVisible();
+  await expect(manager.locator(".task-record-summary")).toContainText(
+    "Adjusted connection and repeated inspection after review",
+  );
+  await review
+    .locator('[name="note"]')
+    .fill("Rework evidence reviewed; restoration verified");
+  await review.locator('button[value="verify"]').click();
+  await expect(manager.locator(".task-detail")).toHaveAttribute(
+    "data-state",
+    "Verified/Closed",
+  );
+  await expect(review).toBeHidden();
+  await manager.reload();
+  await manager.locator("#maintenanceWorkOrderSelect").selectOption(orderId);
+  await expect(manager.locator(".task-review-result")).toContainText(
+    "Rework evidence reviewed; restoration verified",
+  );
+  await expect(manager.locator(".task-status")).toContainText("Closed ");
+  await expect(manager.locator(".task-history")).toContainText(
+    "Returned for rework",
+  );
+  await expect(manager.locator(".task-history")).toContainText(
+    "Verified & closed",
+  );
+  await tech.reload();
+  await expect(tech.locator(".task-detail")).toHaveAttribute(
+    "data-state",
+    "Verified/Closed",
+  );
+  await expect(tech.locator(".task-work")).toBeHidden();
+  await expect(tech.locator(".task-review")).toBeHidden();
+  await expect(tech.locator(".task-note-label")).toBeHidden();
   const response = await tech.request.get(
     `${url}/api/maintenance/work-orders/${orderId}?project_id=atrium-building`,
   );
   const result = await response.json();
-  assert.equal(result.work_order.closed_at, null);
+  assert.ok(result.work_order.closed_at);
   assert.equal(result.work_order.cause_status, "Undetermined");
+  const completions = result.events.filter(
+    (event) => event.action === "complete",
+  );
+  assert.equal(completions.length, 2);
+  assert.equal(
+    completions[0].after.work_order.repair_action,
+    "Inspected and secured connections per test procedure",
+  );
+  assert.equal(
+    completions[1].after.work_order.repair_action,
+    "Adjusted connection and repeated inspection after review",
+  );
+  assert.equal(
+    result.events.find((event) => event.action === "return_rework").before
+      .completed_at,
+    completions[0].after.work_order.completed_at,
+  );
   assert.deepEqual(errors, []);
   console.log(
-    "PASS: manager assignment, technician acknowledgement/start/wait/resume, structured work, reload persistence, mobile layout, Locate in 3D, completion awaiting verification and attributed history.",
+    "PASS: technician lifecycle plus manager return/recomplete/verify-close, stale review rejection, refreshed audit evidence, and closed-job read-only UI.",
   );
 } finally {
   await browser?.close();
