@@ -6,6 +6,108 @@
     <meta name="theme-color" content="#07111c" />
     <title>aura — Project Studio</title>
     <link rel="stylesheet" href="/style.css" />
+    <script>
+      // Presentation state only; initialize before paint and before authentication.
+      (() => {
+        const system = matchMedia("(prefers-color-scheme: dark)");
+        let preference = null;
+        try {
+          preference = localStorage.getItem("aura.theme");
+        } catch {}
+        if (!["light", "dark"].includes(preference)) preference = null;
+        const apply = () => {
+          const theme = preference || (system.matches ? "dark" : "light");
+          document.documentElement.dataset.theme = theme;
+          document.querySelector('meta[name="theme-color"]').content =
+            theme === "dark" ? "#0d1522" : "#f2f5fa";
+          for (const button of document.querySelectorAll(
+            "[data-theme-toggle]",
+          )) {
+            button.textContent = theme === "dark" ? "Light mode" : "Dark mode";
+            button.setAttribute(
+              "aria-label",
+              `Switch to ${theme === "dark" ? "light" : "dark"} mode`,
+            );
+          }
+          dispatchEvent(new Event("aura-theme-change"));
+        };
+        apply();
+        system.addEventListener("change", () => {
+          if (!preference) apply();
+        });
+        addEventListener("storage", (event) => {
+          if (event.key === "aura.theme" || event.key === null) {
+            preference = ["light", "dark"].includes(event.newValue)
+              ? event.newValue
+              : null;
+            apply();
+          }
+        });
+        addEventListener("DOMContentLoaded", () => {
+          apply();
+          for (const button of document.querySelectorAll("[data-theme-toggle]"))
+            button.onclick = () => {
+              preference =
+                document.documentElement.dataset.theme === "dark"
+                  ? "light"
+                  : "dark";
+              try {
+                localStorage.setItem("aura.theme", preference);
+              } catch {}
+              apply();
+            };
+          const button = document.getElementById("navigationToggle");
+          const rail = document.getElementById("applicationNavigation");
+          const backdrop = document.getElementById("navigationBackdrop");
+          const compact = matchMedia("(max-width: 1100px)");
+          const setOpen = (open, restoreFocus = false) => {
+            document.documentElement.classList.toggle("navigation-open", open);
+            button.setAttribute("aria-expanded", String(open));
+            backdrop.hidden = !open;
+            rail.inert = compact.matches && !open;
+            if (open)
+              rail
+                .querySelector("button:not([hidden]):not(:disabled)")
+                ?.focus();
+            else if (restoreFocus) button.focus();
+          };
+          button.onclick = () =>
+            setOpen(button.getAttribute("aria-expanded") !== "true", true);
+          backdrop.onclick = () => setOpen(false, true);
+          rail.addEventListener("click", (event) => {
+            if (
+              compact.matches &&
+              event.target.closest("button:not(:disabled)")
+            )
+              setOpen(false, true);
+          });
+          addEventListener("keydown", (event) => {
+            if (!document.documentElement.classList.contains("navigation-open"))
+              return;
+            if (event.key === "Escape") {
+              event.preventDefault();
+              setOpen(false, true);
+            }
+            if (event.key === "Tab") {
+              const items = [
+                ...rail.querySelectorAll("button:not(:disabled)"),
+              ].filter((el) => el.getClientRects().length);
+              const first = items[0],
+                last = items.at(-1);
+              if (event.shiftKey && document.activeElement === first) {
+                event.preventDefault();
+                last?.focus();
+              } else if (!event.shiftKey && document.activeElement === last) {
+                event.preventDefault();
+                first?.focus();
+              }
+            }
+          });
+          compact.addEventListener("change", () => setOpen(false));
+          setOpen(false);
+        });
+      })();
+    </script>
     <script type="importmap">
       { "imports": { "three": "/vendor/three.module.js" } }
     </script>
@@ -14,6 +116,13 @@
     <main id="loginScreen" class="login-screen" hidden>
       <section class="login-card" aria-labelledby="loginTitle">
         <p class="eyebrow">AURA · BUILDING MANAGEMENT</p>
+        <button
+          class="ui-control login-theme-control"
+          data-theme-toggle
+          type="button"
+        >
+          Theme
+        </button>
         <h1 id="loginTitle">Welcome back.</h1>
         <p>Sign in to your digital twin workspace.</p>
         <form id="loginForm">
@@ -45,6 +154,13 @@
     <main id="passwordSetupScreen" class="login-screen" hidden>
       <section class="login-card" aria-labelledby="passwordSetupTitle">
         <p class="eyebrow">AURA · ACCOUNT SETUP</p>
+        <button
+          class="ui-control login-theme-control"
+          data-theme-toggle
+          type="button"
+        >
+          Theme
+        </button>
         <h1 id="passwordSetupTitle">Set your password.</h1>
         <p>You must replace your temporary password before entering AURA.</p>
         <form id="passwordSetupForm">
@@ -91,6 +207,16 @@
     <div id="applicationShell" class="shell" hidden>
       <header class="topbar">
         <div class="identity">
+          <button
+            id="navigationToggle"
+            class="ui-control"
+            type="button"
+            aria-label="Toggle application navigation"
+            aria-controls="applicationNavigation"
+            aria-expanded="false"
+          >
+            ☰
+          </button>
           <div class="brand-symbol" aria-hidden="true">
             <svg viewBox="0 0 40 40" width="30">
               <path
@@ -114,6 +240,14 @@
           </div>
         </div>
         <div class="top-actions">
+          <button
+            id="themeToggle"
+            class="ui-control"
+            data-theme-toggle
+            type="button"
+          >
+            Theme
+          </button>
           <div class="account-identity">
             <strong id="accountName"></strong><small id="accountRole"></small>
           </div>
@@ -144,7 +278,18 @@
       </header>
 
       <div class="app-grid">
-        <aside class="navrail" aria-label="Application navigation">
+        <button
+          id="navigationBackdrop"
+          class="navigation-backdrop"
+          aria-label="Close application navigation"
+          type="button"
+          hidden
+        ></button>
+        <aside
+          id="applicationNavigation"
+          class="navrail"
+          aria-label="Application navigation"
+        >
           <button
             id="navDashboard"
             class="nav-item"
@@ -676,6 +821,15 @@
                 aria-label="Maintenance sections"
               >
                 <button
+                  id="myTasksTab"
+                  type="button"
+                  data-maintenance-tab="my-tasks"
+                  aria-pressed="false"
+                  hidden
+                >
+                  My Tasks
+                </button>
+                <button
                   type="button"
                   data-maintenance-tab="reports"
                   aria-pressed="true"
@@ -877,8 +1031,8 @@
               >
                 <h3>Work Orders</h3>
                 <p class="maintenance-caption">
-                  Persisted corrective jobs from the existing AHU pilot. Full
-                  job execution and lifecycle actions are planned.
+                  Select a persisted corrective job to inspect its history and
+                  assign an authorized technician.
                 </p>
                 <label
                   >Work order<select id="maintenanceWorkOrderSelect">
@@ -889,6 +1043,18 @@
                   id="maintenanceWorkOrderDetail"
                   class="maintenance-report-detail"
                 ></div>
+              </section>
+              <section
+                id="maintenanceMyTasksPanel"
+                hidden
+                aria-label="My assigned maintenance tasks"
+              >
+                <h3>My Tasks</h3>
+                <p id="myTasksMessage" role="status" aria-live="polite"></p>
+                <div class="my-tasks-layout">
+                  <div id="myTasksList" aria-label="Assigned tasks"></div>
+                  <div id="myTaskDetail"></div>
+                </div>
               </section>
               <section
                 id="maintenanceFuturePanel"

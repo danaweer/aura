@@ -22,6 +22,7 @@ from device_reader import HEALTH_NAMES, read_latest
 from history import HistoryStore
 from maintenance_api import handle_maintenance
 from auth import AuthError
+from maintenance_tasks_api import handle_tasks
 from user_management_api import handle_user_management
 from auth_http import AuthSettings, authenticate, handle_auth, trusted_host, require_project, require_permission, cookie_token
 from projects import project_catalog
@@ -333,10 +334,12 @@ def make_handler(hub, auth_settings=None):
                 return
             if handle_user_management(self, hub.room):
                 return
+            if handle_tasks(self, hub.store.maintenance):
+                return
             if handle_maintenance(self, hub.store.maintenance):
                 return
             route = urlsplit(self.path).path
-            static = {"/": "index.html", "/index.html": "index.html", "/app.js": "app.js", "/auth-ui.js": "auth-ui.js", "/users-ui.js": "users-ui.js", "/login": "index.html", "/maintenance-ui.js": "maintenance-ui.js", "/telemetry.js": "telemetry.js", "/style.css": "style.css", "/viewer-fullscreen.js": "viewer-fullscreen.js"}
+            static = {"/": "index.html", "/index.html": "index.html", "/app.js": "app.js", "/auth-ui.js": "auth-ui.js", "/users-ui.js": "users-ui.js", "/login": "index.html", "/maintenance-ui.js": "maintenance-ui.js", "/maintenance-tasks-ui.js": "maintenance-tasks-ui.js", "/telemetry.js": "telemetry.js", "/style.css": "style.css", "/viewer-fullscreen.js": "viewer-fullscreen.js"}
             for filename in ("building-viewer.js", "projects/atrium-building/blueprint.js", "project-ui.js", "vendor/three.module.js", "vendor/three.core.js", "vendor/OrbitControls.js", "projects/meeting-room/model.js", "projects/atrium-building/model.js", "projects/atrium-building/layout.js", "projects/atrium-building/interiors.js", "projects/atrium-building/geometry.js", "projects/atrium-building/architecture.js", "projects/atrium-building/services.js", "projects/atrium-building/devices.js", "projects/atrium-building/device-plan.js", "projects/atrium-building/reference/device-positions-d02.pdf", "projects/atrium-building/visibility.js", "projects/atrium-building/stairs.js", "projects/atrium-building/egress.js", "projects/atrium-building/egress-plan.js", "projects/atrium-building/extinguishers.js", "projects/atrium-building/equipment.js", "projects/atrium-building/main-service-plan.js", "projects/atrium-building/main-services.js", "projects/atrium-building/reference/main-service-routes.pdf", "projects/atrium-building/equipment-plan.js", "projects/atrium-building/reference/equipment-placement-p01.pdf", "projects/atrium-building/washroom-plan.js", "projects/atrium-building/washrooms.js", "projects/atrium-building/washroom-plumbing.js", "projects/atrium-building/extinguisher-plan.js", "projects/atrium-building/reference/extinguishers-f01-p10.pdf", "projects/atrium-building/reference/extinguishers-f01-p11.pdf", "projects/atrium-building/reference/extinguishers-f01-p12.pdf", "projects/atrium-building/reference/extinguishers-f01-p13.pdf", "projects/atrium-building/reference/extinguishers-f01-p14.pdf", "projects/atrium-building/reference/means-of-egress-e01.pdf", "projects/meeting-room/preview.svg", "projects/atrium-building/preview.svg"):
                 static["/" + filename] = filename
             if route in static:
@@ -457,6 +460,8 @@ def make_handler(hub, auth_settings=None):
                 self.json_response(503,{"error":"Authentication storage is unavailable"})
                 return
             if handle_user_management(self, hub.room):
+                return
+            if handle_tasks(self, hub.store.maintenance):
                 return
             if handle_maintenance(self, hub.store.maintenance):
                 return

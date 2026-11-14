@@ -111,7 +111,7 @@ class ReportTests(unittest.TestCase):
         upgraded=HistoryStore(path); self.addCleanup(upgraded.close)
         self.assertEqual(upgraded.maintenance.get_work_order(PROJECT,"legacy-job")["description"],"Original")
         self.assertGreater(len(upgraded.maintenance.reports.rooms(PROJECT)),0)
-        self.assertEqual(upgraded.connection.execute("SELECT version FROM maintenance_schema_migrations ORDER BY version").fetchall(),[(1,),(2,)])
+        self.assertEqual(upgraded.connection.execute("SELECT version FROM maintenance_schema_migrations ORDER BY version").fetchall(),[(1,),(2,),(3,)])
 
 
 class ReportApiTests(unittest.TestCase):

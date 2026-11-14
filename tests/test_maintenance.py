@@ -72,7 +72,7 @@ class MaintenanceTests(unittest.TestCase):
         self.assertEqual(json.loads(audit[-1]["after_json"])["description"], "Investigate on site")
         self.assertEqual(len(reopened.maintenance.list_assets(PROJECT)), 3)
         self.assertEqual(reopened.maintenance.get_asset(PROJECT, "AHU-L1-01")["criticality"], "site-reviewed")
-        self.assertEqual(reopened.connection.execute("SELECT version FROM maintenance_schema_migrations").fetchall(), [(1,), (2,)])
+        self.assertEqual(reopened.connection.execute("SELECT version FROM maintenance_schema_migrations").fetchall(), [(1,), (2,), (3,)])
 
     def test_invalid_cross_project_references_and_stale_writes_are_rejected(self):
         for project, asset in [(PROJECT, "missing"), ("meeting-room", "FP-01")]:
@@ -138,7 +138,7 @@ class MaintenanceTests(unittest.TestCase):
 
     def test_migrations_are_atomic_and_refuse_unknown_future_versions(self):
         order = self.create()
-        bad_revision = (3, ("CREATE TABLE maintenance_probe (id INTEGER)", "INVALID SQL"))
+        bad_revision = (4, ("CREATE TABLE maintenance_probe (id INTEGER)", "INVALID SQL"))
         with patch.object(maintenance, "MIGRATIONS", maintenance.MIGRATIONS + (bad_revision,)):
             with self.assertRaises(sqlite3.OperationalError):
                 HistoryStore(self.path)
@@ -148,7 +148,7 @@ class MaintenanceTests(unittest.TestCase):
             self.history.connection.execute("INSERT INTO maintenance_schema_migrations VALUES (99, 'future')")
         with self.assertRaisesRegex(ValueError, "no downgrade"):
             HistoryStore(self.path)
-        self.assertEqual(self.history.connection.execute("SELECT version FROM maintenance_schema_migrations ORDER BY version").fetchall(), [(1,), (2,), (99,)])
+        self.assertEqual(self.history.connection.execute("SELECT version FROM maintenance_schema_migrations ORDER BY version").fetchall(), [(1,), (2,), (3,), (99,)])
 
     def test_database_enforces_composite_foreign_keys(self):
         order = self.create()

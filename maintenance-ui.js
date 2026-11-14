@@ -1,5 +1,10 @@
 /* Local corrective reporting/triage only; no viewer state changes or telemetry. */
 import { authState, authFetch, can } from "./auth-ui.js";
+import {
+  WorkOrderPanel,
+  MyTasksView,
+  taskStatus,
+} from "./maintenance-tasks-ui.js";
 const PROJECT = "atrium-building";
 const $ = (id) => document.getElementById(id);
 export class MaintenancePanel {
@@ -14,6 +19,22 @@ export class MaintenancePanel {
     this.requestKey = null;
     this.busy = false;
     this.generation = 0;
+    this.taskPanel = new WorkOrderPanel(
+      (asset) => this.locateAsset?.(asset),
+      (order) => {
+        this.workOrders = this.workOrders.map((w) =>
+          w.work_order_id === order.work_order_id ? order : w,
+        );
+        this.tasks.updated(order);
+        const option = [...$("maintenanceWorkOrderSelect").options].find(
+          (option) => option.value === order.work_order_id,
+        );
+        if (option)
+          option.textContent = `${order.work_order_id.slice(0, 8)} · ${order.asset_id} · ${taskStatus(order)} · ${order.priority} · ${order.title}`;
+      },
+    );
+    this.tasks = new MyTasksView(this.taskPanel);
+    $("myTasksTab").hidden = authState.user.role !== "technician";
     $("maintenanceReportAction").onclick = () => {
       this.setTab("reports");
       this.reportForm.scrollIntoView({ block: "nearest" });
@@ -23,8 +44,18 @@ export class MaintenancePanel {
     this.reports = [];
     for (const button of this.root.querySelectorAll("[data-maintenance-tab]"))
       button.onclick = () => this.setTab(button.dataset.maintenanceTab);
-    $("maintenanceWorkOrderSelect").onchange = () => this.renderOrder();
-    $("maintenanceRefresh").onclick = () => this.refresh();
+    $("maintenanceWorkOrderSelect").onchange = () => {
+      if (this.taskPanel.busy) {
+        $("maintenanceWorkOrderSelect").value =
+          this.taskPanel.order.work_order_id;
+        return;
+      }
+      this.renderOrder();
+    };
+    $("maintenanceRefresh").onclick = () =>
+      this.root.dataset.section === "my-tasks"
+        ? this.tasks.refresh()
+        : this.refresh();
     this.draftKey = `aura-maintenance-report-draft:${authState.user.user_id}`;
     $("maintenanceCurrentIdentity").textContent =
       `${authState.user.name} · ${authState.user.role}`;
@@ -95,8 +126,10 @@ export class MaintenancePanel {
     this.active = active;
     if (!active) {
       this.generation++;
+      this.tasks.close();
+      this.taskPanel.close();
     }
-    if (active) this.refresh();
+    if (active && this.root.dataset.section !== "my-tasks") this.refresh();
   }
   setContext(part) {
     this.context = part;
@@ -109,7 +142,8 @@ export class MaintenancePanel {
   }
   open(params = {}) {
     const project = params.project_id || PROJECT;
-    const supported = project === PROJECT;
+    const technician = authState.user.role === "technician";
+    const supported = project === PROJECT || technician;
     this.root.hidden = !supported;
     $("maintenanceOverview").hidden = !supported;
     $("maintenanceReportAction").disabled = !supported;
@@ -117,12 +151,17 @@ export class MaintenancePanel {
     $("maintenanceUsePilot").hidden = supported;
     this.routeAssetId = params.asset_id || null;
     this.pendingContext = params;
-    $("maintenanceContext").textContent = !supported
-      ? `Project ${project}: maintenance reporting is currently available in the Atrium building pilot.`
-      : this.routeAssetId
-        ? `Asset ${this.routeAssetId}${params.room_id ? ` · Room ${params.room_id}` : ""}. ${this.routeAssetId === "AHU-L1-01" ? "AHU corrective maintenance pilot." : "Corrective equipment reporting currently supports AHU-L1-01; you can submit an observation against this room with equipment unknown."}`
-        : "Atrium building / 01 · Reports and corrective work orders. Equipment can be unknown when reporting by room.";
-    this.setTab(params.section || "reports");
+    $("maintenanceContext").textContent = technician
+      ? "My Tasks · Only assigned work in your permitted projects. Completed repairs await independent verification."
+      : !supported
+        ? `Project ${project}: maintenance reporting is currently available in the Atrium building pilot.`
+        : this.routeAssetId
+          ? `Asset ${this.routeAssetId}${params.room_id ? ` · Room ${params.room_id}` : ""}. ${this.routeAssetId === "AHU-L1-01" ? "AHU corrective maintenance pilot." : "Corrective equipment reporting currently supports AHU-L1-01; you can submit an observation against this room with equipment unknown."}`
+          : "Atrium building / 01 · Reports and corrective work orders. Equipment can be unknown when reporting by room.";
+    this.setTab(
+      params.section ||
+        (authState.user.role === "technician" ? "my-tasks" : "reports"),
+    );
     this.setActive(supported);
   }
   setTab(tab) {
@@ -131,8 +170,16 @@ export class MaintenancePanel {
       predictive: "Predictive maintenance",
       "asset-history": "Asset maintenance history",
     };
-    if (!["reports", "work-orders", ...Object.keys(future)].includes(tab))
+    if (tab === "my-tasks" && authState.user.role !== "technician")
       tab = "reports";
+    if (
+      !["reports", "work-orders", "my-tasks", ...Object.keys(future)].includes(
+        tab,
+      )
+    )
+      tab = "reports";
+    this.tasks.close();
+    this.taskPanel.close();
     this.root.dataset.section = tab;
     for (const button of this.root.querySelectorAll("[data-maintenance-tab]"))
       button.setAttribute(
@@ -141,8 +188,19 @@ export class MaintenancePanel {
       );
     $("maintenanceReportsPanel").hidden = tab !== "reports";
     $("maintenanceWorkOrdersPanel").hidden = tab !== "work-orders";
+    $("maintenanceMyTasksPanel").hidden = tab !== "my-tasks";
+    $("maintenanceRefresh").textContent =
+      tab === "my-tasks"
+        ? "Refresh tasks"
+        : tab === "work-orders"
+          ? "Refresh work orders"
+          : "Refresh reports";
+    $("maintenanceOverview").hidden = tab === "my-tasks";
     $("maintenanceFuturePanel").hidden = !future[tab];
     $("maintenanceFutureTitle").textContent = future[tab] || "";
+    if (tab === "my-tasks") this.tasks.refresh();
+    if (tab === "work-orders") this.renderOrder();
+    if (this.active && ["reports", "work-orders"].includes(tab)) this.refresh();
   }
   renderOrders() {
     const select = $("maintenanceWorkOrderSelect"),
@@ -171,12 +229,21 @@ export class MaintenancePanel {
     this.renderOrder();
   }
   renderOrder() {
+    if (this.taskPanel.busy) return;
+    if (this.root.dataset.section !== "work-orders") return;
+    this.taskPanel.close();
     const order = this.workOrders.find(
       (w) => w.work_order_id === $("maintenanceWorkOrderSelect").value,
     );
     const detail = $("maintenanceWorkOrderDetail");
     detail.replaceChildren();
     if (!order) return;
+    if (
+      ["technician", "manager", "administrator"].includes(authState.user.role)
+    ) {
+      this.taskPanel.open(order, detail);
+      return;
+    }
     const reports = this.reports.filter(
       (r) => r.work_order_id === order.work_order_id,
     );

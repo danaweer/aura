@@ -882,7 +882,8 @@ function drawTrend() {
   chartCanvas.height = Math.round(height * dpi);
   chart.setTransform(dpi, 0, 0, dpi, 0, 0);
   chart.clearRect(0, 0, width, height);
-  chart.strokeStyle = "#344e6155";
+  const chartTheme = getComputedStyle(document.documentElement);
+  chart.strokeStyle = chartTheme.getPropertyValue("--chart-grid").trim();
   chart.lineWidth = 1;
   for (let i = 1; i < 4; i++) {
     const y = (height * i) / 4;
@@ -926,8 +927,13 @@ function drawTrend() {
     pts.forEach((p, i) =>
       i === 0 ? chart.moveTo(p.x, p.y) : chart.lineTo(p.x, p.y),
     );
-    chart.strokeStyle =
-      segment[0].quality === "unknown" ? "#f2b968" : "#56e6d3";
+    chart.strokeStyle = chartTheme
+      .getPropertyValue(
+        segment[0].quality === "unknown"
+          ? "--chart-unverified"
+          : "--chart-current",
+      )
+      .trim();
     chart.lineWidth = 2.25;
     chart.stroke();
     const p = pts.at(-1);
@@ -942,6 +948,7 @@ new ResizeObserver(() => {
   fit();
   drawTrend();
 }).observe(scene);
+window.addEventListener("aura-theme-change", drawTrend);
 fit();
 syncViewButtons();
 requestAnimationFrame(animate);
@@ -1525,6 +1532,12 @@ function showApplicationPage(page, params = {}) {
   }
 }
 library = new ProjectLibrary(activateProject, showLibrary, showApplicationPage);
+maintenancePanel.locateAsset = async (asset) => {
+  const project = library.projects.find((p) => p.id === asset.project_id);
+  if (!project) return;
+  await library.open(project.id);
+  buildingViewer?.selectEquipment(asset.asset_id);
+};
 for (const button of document.querySelectorAll("[data-app-page]"))
   button.onclick = () =>
     library.navigate(
@@ -1545,5 +1558,6 @@ $("maintenanceUsePilot").onclick = () =>
   library.navigate("maintenance", { project_id: "atrium-building" });
 $("navUsers").hidden = !can("administration");
 $("navMaintenance").hidden =
-  !authState.user.projects.includes("atrium-building");
+  !authState.user.projects.includes("atrium-building") &&
+  authState.user.role !== "technician";
 library.load();

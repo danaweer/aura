@@ -1,4 +1,4 @@
-"""Project-scoped maintenance storage; no scheduling, telemetry or workflow engine."""
+"""Project-scoped maintenance storage; no scheduling or telemetry automation."""
 
 import hashlib
 import json
@@ -101,6 +101,19 @@ MIGRATIONS += ((2, (
     "CREATE INDEX maintenance_report_events_order ON maintenance_report_events(project_id,report_id,at,event_id)",
 )),)
 
+MIGRATIONS += ((3, (
+    "ALTER TABLE maintenance_work_orders ADD COLUMN assigned_at TEXT",
+    "ALTER TABLE maintenance_work_orders ADD COLUMN findings TEXT NOT NULL DEFAULT ''",
+    "ALTER TABLE maintenance_work_orders ADD COLUMN cause_status TEXT CHECK(cause_status IN ('Diagnosed','Undetermined'))",
+    "ALTER TABLE maintenance_work_orders ADD COLUMN diagnosis TEXT NOT NULL DEFAULT ''",
+    "ALTER TABLE maintenance_work_orders ADD COLUMN repair_action TEXT NOT NULL DEFAULT ''",
+    "ALTER TABLE maintenance_work_orders ADD COLUMN materials_used TEXT NOT NULL DEFAULT ''",
+    "ALTER TABLE maintenance_work_orders ADD COLUMN work_duration_minutes INTEGER NOT NULL DEFAULT 0 CHECK(work_duration_minutes>=0)",
+    "ALTER TABLE maintenance_work_orders ADD COLUMN post_work_checks TEXT NOT NULL DEFAULT ''",
+    "ALTER TABLE maintenance_work_orders ADD COLUMN post_work_result TEXT CHECK(post_work_result IN ('Passed','Not restored'))",
+    "CREATE INDEX maintenance_work_orders_assignee ON maintenance_work_orders(assignee_id,project_id,assigned_at)",
+)),)
+
 class AssetNotFoundError(LookupError):
     """The referenced asset is not registered in this project (mapping error)."""
 
@@ -184,6 +197,8 @@ class MaintenanceStore:
                     "INSERT INTO maintenance_rooms VALUES (?, ?, ?, ?) ON CONFLICT(project_id,room_id) DO NOTHING",
                     (room["project_id"],room["room_id"],room["name"],room["floor"]))
         self.reports = ReportStore(self)
+        from maintenance_workflow import WorkOrderWorkflow
+        self.workflow = WorkOrderWorkflow(self)
 
     @contextmanager
     def _write(self):
@@ -287,8 +302,8 @@ class MaintenanceStore:
 
     def update_work_order(self, project_id, work_order_id, expected_version, *,
                           title=None, description=None, actor="local-operator"):
-        # Workflow-sensitive fields deliberately have no generic setter. Later
-        # triage/assignment/transition commands must implement the section-4 rules.
+        # Workflow-sensitive fields deliberately have no generic setter.
+        # Use the dedicated report-triage and workflow commands for those changes.
         if title is None and description is None:
             raise ValueError("No editable fields provided")
         if title is not None:
